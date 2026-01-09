@@ -66,7 +66,7 @@ function init() {
     directionalLight.castShadow = true;
     scene.add(directionalLight);
     
-    // 创建原子模型的的
+    // 创建原子模型
     createAtomModel();
     
     // 隐藏加载提示
@@ -596,6 +596,3 @@ function getElementDescription(element) {
 
 // 页面加载完成后初始化
 window.addEventListener('DOMContentLoaded', init);
-
-
-
