@@ -62,21 +62,22 @@
         }
         
         .university-logo {
-            width: 60px;
-            height: 60px;
-            margin-right: 15px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #2c3e50, #34495e);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 12px;
-            text-align: center;
-            padding: 5px;
-            box-shadow: 0 4px 12px rgba(44, 62, 80, 0.1);
-        }
+    width: 60px;
+    height: 60px;
+    margin-right: 15px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;  /* 新增：防止图片溢出圆角 */
+    box-shadow: 0 4px 12px rgba(44, 62, 80, 0.1);
+}
+
+.university-logo img {
+    width: 100%;      /* 图片宽度填满容器 */
+    height: 100%;     /* 图片高度填满容器 */
+    object-fit: contain;  /* 保持图片比例，完整显示 */
+}
         
         .logo-content {
             display: flex;
@@ -1185,4 +1186,5 @@
         }
     </script>
 </body>
+
 </html>
