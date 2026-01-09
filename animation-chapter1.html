@@ -3,485 +3,694 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第1章：原子结构 | 结构化学动画</title>
-    
-    <!-- 引入样式和字体 -->
-    <link rel="stylesheet" href="css/style.css">
+    <title>原子结构三维动画 - 第二章</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- 引入Three.js库 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-    <!-- 引入OrbitControls -->
-    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-    
     <style>
-        .chapter-container {
-            max-width: 1200px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', 'Microsoft YaHei', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0c1a2d 0%, #152642 50%, #0c1a2d 100%);
+            color: #e0f0ff;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1400px;
             margin: 0 auto;
             padding: 20px;
         }
         
-        .chapter-header {
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid rgba(64, 156, 255, 0.3);
+            margin-bottom: 30px;
+        }
+        
+        .logo {
             display: flex;
             align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid #e0e0e0;
+            gap: 15px;
         }
         
-        .back-button {
-            display: inline-flex;
-            align-items: center;
+        .logo-icon {
+            font-size: 28px;
+            color: #40a9ff;
+        }
+        
+        .logo-text h1 {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #40a9ff, #7cd0ff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        .logo-text p {
+            font-size: 14px;
+            color: #a0d2ff;
+            opacity: 0.8;
+        }
+        
+        .nav-controls {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .btn {
             padding: 10px 20px;
-            background: #2c3e50;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px;
-            margin-right: 20px;
-            transition: all 0.3s ease;
-        }
-        
-        .back-button:hover {
-            background: #34495e;
-            transform: translateX(-5px);
-        }
-        
-        .chapter-title {
-            font-size: 2rem;
-            color: #2c3e50;
-            margin: 0;
-        }
-        
-        .animation-canvas {
-            width: 100%;
-            height: 500px;
-            background: #0a0a1a;
-            border-radius: 10px;
-            overflow: hidden;
-            margin-bottom: 30px;
-            border: 1px solid #34495e;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-        }
-        
-        #atomCanvas {
-            width: 100%;
-            height: 100%;
-            display: block;
-        }
-        
-        .controls-panel {
-            background: white;
-            padding: 25px;
-            border-radius: 10px;
-            margin-bottom: 30px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-        }
-        
-        .control-group {
-            margin-bottom: 20px;
-        }
-        
-        .control-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-            color: #2c3e50;
-        }
-        
-        .btn-control {
-            padding: 10px 20px;
-            background: #3498db;
-            color: white;
-            border: none;
-            border-radius: 5px;
+            background: rgba(20, 60, 120, 0.7);
+            border: 1px solid rgba(64, 156, 255, 0.4);
+            border-radius: 6px;
+            color: #c2e0ff;
             cursor: pointer;
-            font-weight: 500;
-            margin-right: 10px;
-            margin-bottom: 10px;
             transition: all 0.3s ease;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         
-        .btn-control:hover {
-            background: #2980b9;
+        .btn:hover {
+            background: rgba(30, 80, 160, 0.8);
+            border-color: #40a9ff;
             transform: translateY(-2px);
-            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+            box-shadow: 0 5px 15px rgba(0, 100, 255, 0.2);
         }
         
-        .btn-control:active {
-            transform: translateY(0);
+        .btn-primary {
+            background: linear-gradient(90deg, #1677ff, #4096ff);
+            border-color: #1677ff;
         }
         
-        .chapter-content {
-            background: white;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+        
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .visualization-section {
+            background: rgba(10, 25, 50, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(64, 156, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 20, 60, 0.3);
+            height: 650px;
+            position: relative;
+            overflow: hidden;
         }
         
         .section-title {
-            color: #2c3e50;
-            margin-bottom: 20px;
-            padding-bottom: 10px;
-            border-bottom: 2px solid #3498db;
-        }
-        
-        .concept-list {
-            list-style: none;
-            padding: 0;
-        }
-        
-        .concept-list li {
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-        }
-        
-        .concept-list li:last-child {
-            border-bottom: none;
-        }
-        
-        .concept-icon {
-            color: #3498db;
-            margin-right: 10px;
-        }
-        
-        .orbital-selector {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px;
-            margin: 20px 0;
-        }
-        
-        .orbital-btn {
-            padding: 10px 20px;
-            background: #2c3e50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-        
-        .orbital-btn.active,
-        .orbital-btn:hover {
-            background: #3498db;
-            transform: translateY(-2px);
-        }
-        
-        .quantum-grid, .rules-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 15px;
-            margin-top: 15px;
-        }
-        
-        .quantum-item, .rule-item {
-            background: linear-gradient(135deg, #1a1a2e, #16213e);
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            border: 1px solid #3498db;
-            color: white;
-        }
-        
-        .quantum-label, .rule-title {
-            font-weight: bold;
-            color: #3498db;
-            font-size: 1.2rem;
-            margin-bottom: 5px;
-        }
-        
-        .quantum-value {
-            font-size: 1.5rem;
-            color: white;
-            margin: 10px 0;
-            font-weight: bold;
-        }
-        
-        .quantum-desc, .rule-desc {
-            color: #bdc3c7;
-            font-size: 0.9rem;
-        }
-        
-        .atom-legend {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin: 20px 0;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-        }
-        
-        .atom-color {
+            font-size: 20px;
+            margin-bottom: 15px;
+            color: #7cd0ff;
             display: flex;
             align-items: center;
             gap: 10px;
         }
         
-        .color-box {
-            width: 20px;
-            height: 20px;
-            border-radius: 50%;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        .section-title i {
+            color: #40a9ff;
         }
         
-        .nucleus-color {
-            background-color: #ff9900;
-        }
-        
-        .s-orbital-color {
-            background-color: #ff0000;
-        }
-        
-        .p-orbital-color {
-            background-color: #00ff00;
-        }
-        
-        .d-orbital-color {
-            background-color: #0000ff;
-        }
-        
-        .f-orbital-color {
-            background-color: #ff00ff;
-        }
-        
-        .electron-cloud-color {
-            background: linear-gradient(90deg, #3498db, #2ecc71);
-        }
-        
-        .range-control {
+        #atom-canvas {
             width: 100%;
-            margin: 10px 0;
+            height: 550px;
+            border-radius: 8px;
+            background: rgba(5, 15, 30, 0.9);
         }
         
-        .info-box {
-            background: #f8f9fa;
-            padding: 15px;
-            border-radius: 5px;
-            margin: 15px 0;
-            border-left: 4px solid #3498db;
+        .controls-section {
+            background: rgba(10, 25, 50, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(64, 156, 255, 0.2);
+            box-shadow: 0 10px 30px rgba(0, 20, 60, 0.3);
+            height: 650px;
+            display: flex;
+            flex-direction: column;
         }
         
-        .operation-guide {
+        .tab-container {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid rgba(64, 156, 255, 0.2);
+        }
+        
+        .tab {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            color: #a0d2ff;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .tab.active {
+            color: #40a9ff;
+        }
+        
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -1px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #40a9ff;
+            border-radius: 3px 3px 0 0;
+        }
+        
+        .tab-content {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        
+        .tab-pane {
+            display: none;
+        }
+        
+        .tab-pane.active {
+            display: block;
+        }
+        
+        .control-group {
+            margin-bottom: 25px;
+        }
+        
+        .control-label {
+            display: block;
+            margin-bottom: 10px;
+            color: #7cd0ff;
+            font-weight: 500;
+        }
+        
+        .orbital-buttons {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 15px;
-            margin-top: 20px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
         }
         
-        .operation-item {
-            background: #f1f8ff;
-            padding: 15px;
-            border-radius: 5px;
+        .orbital-btn {
+            padding: 12px 10px;
+            background: rgba(20, 60, 120, 0.5);
+            border: 1px solid rgba(64, 156, 255, 0.3);
+            border-radius: 6px;
+            color: #c2e0ff;
+            cursor: pointer;
+            transition: all 0.3s ease;
             text-align: center;
         }
         
+        .orbital-btn.active {
+            background: rgba(30, 100, 200, 0.7);
+            border-color: #40a9ff;
+            box-shadow: 0 0 15px rgba(64, 156, 255, 0.4);
+        }
+        
+        .orbital-btn:hover:not(.active) {
+            background: rgba(30, 80, 160, 0.7);
+            border-color: rgba(64, 156, 255, 0.5);
+        }
+        
+        .slider-container {
+            margin: 15px 0;
+        }
+        
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 5px;
+        }
+        
+        .slider {
+            width: 100%;
+            height: 8px;
+            -webkit-appearance: none;
+            appearance: none;
+            background: rgba(20, 60, 120, 0.7);
+            border-radius: 4px;
+            outline: none;
+        }
+        
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #40a9ff;
+            cursor: pointer;
+            box-shadow: 0 0 10px rgba(64, 156, 255, 0.7);
+        }
+        
+        .quantum-number-display {
+            background: rgba(5, 15, 30, 0.8);
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 10px;
+            border: 1px solid rgba(64, 156, 255, 0.2);
+        }
+        
+        .quantum-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px dashed rgba(64, 156, 255, 0.2);
+        }
+        
+        .quantum-item:last-child {
+            border-bottom: none;
+        }
+        
+        .info-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 25px;
+            margin-top: 30px;
+        }
+        
+        .info-card {
+            background: rgba(10, 25, 50, 0.7);
+            border-radius: 12px;
+            padding: 20px;
+            border: 1px solid rgba(64, 156, 255, 0.2);
+            box-shadow: 0 5px 15px rgba(0, 20, 60, 0.2);
+        }
+        
+        .info-card h3 {
+            color: #7cd0ff;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 18px;
+        }
+        
+        .info-card ul {
+            padding-left: 20px;
+            color: #c2e0ff;
+            line-height: 1.6;
+        }
+        
+        .info-card li {
+            margin-bottom: 8px;
+        }
+        
+        .highlight {
+            color: #40a9ff;
+            font-weight: 600;
+        }
+        
+        .footer {
+            text-align: center;
+            padding: 25px 0;
+            margin-top: 40px;
+            border-top: 1px solid rgba(64, 156, 255, 0.3);
+            color: #a0d2ff;
+            font-size: 14px;
+        }
+        
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 18px;
+            color: #40a9ff;
+        }
+        
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        
+        .legend-color {
+            width: 15px;
+            height: 15px;
+            border-radius: 3px;
+        }
+        
+        /* 自定义滚动条 */
+        .tab-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .tab-content::-webkit-scrollbar-track {
+            background: rgba(10, 25, 50, 0.5);
+            border-radius: 3px;
+        }
+        
+        .tab-content::-webkit-scrollbar-thumb {
+            background: rgba(64, 156, 255, 0.5);
+            border-radius: 3px;
+        }
+        
+        .tab-content::-webkit-scrollbar-thumb:hover {
+            background: rgba(64, 156, 255, 0.8);
+        }
+        
+        /* 响应式调整 */
         @media (max-width: 768px) {
-            .chapter-title {
-                font-size: 1.5rem;
+            .main-content {
+                grid-template-columns: 1fr;
             }
             
-            .animation-canvas {
+            .visualization-section, .controls-section {
+                height: 500px;
+            }
+            
+            #atom-canvas {
                 height: 400px;
             }
             
-            .orbital-selector {
-                justify-content: center;
+            header {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
             }
             
-            .btn-control {
-                width: 100%;
-                margin-right: 0;
+            .orbital-buttons {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
-    <div class="chapter-container">
-        <!-- 头部：返回按钮和标题 -->
-        <div class="chapter-header">
-            <a href="index.html" class="back-button">
-                <i class="fas fa-arrow-left"></i> 返回主页
-            </a>
-            <h1 class="chapter-title">
-                <i class="fas fa-atom"></i> 第1章：原子结构
-            </h1>
-        </div>
-        
-        <!-- 颜色图例 -->
-        <div class="atom-legend">
-            <div class="atom-color">
-                <div class="color-box nucleus-color"></div>
-                <span>原子核</span>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-atom"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>原子结构三维可视化</h1>
+                    <p>量子力学与电子轨道交互演示</p>
+                </div>
             </div>
-            <div class="atom-color">
-                <div class="color-box s-orbital-color"></div>
-                <span>S轨道</span>
-            </div>
-            <div class="atom-color">
-                <div class="color-box p-orbital-color"></div>
-                <span>P轨道</span>
-            </div>
-            <div class="atom-color">
-                <div class="color-box d-orbital-color"></div>
-                <span>D轨道</span>
-            </div>
-            <div class="atom-color">
-                <div class="color-box f-orbital-color"></div>
-                <span>F轨道</span>
-            </div>
-            <div class="atom-color">
-                <div class="color-box electron-cloud-color"></div>
-                <span>电子云</span>
-            </div>
-        </div>
-        
-        <!-- 3D动画画布 -->
-        <div class="animation-canvas">
-            <canvas id="atomCanvas"></canvas>
-        </div>
-        
-        <!-- 轨道选择器 -->
-        <div class="controls-panel">
-            <h3><i class="fas fa-exchange-alt"></i> 选择原子轨道类型</h3>
-            <p>点击下方按钮查看不同轨道的三维空间形状：</p>
-            <div class="orbital-selector">
-                <button class="orbital-btn active" data-orbital="s">
-                    <i class="fas fa-circle"></i> S轨道 (球形对称)
-                </button>
-                <button class="orbital-btn" data-orbital="p">
-                    <i class="fas fa-dumbbell"></i> P轨道 (哑铃形)
-                </button>
-                <button class="orbital-btn" data-orbital="d">
-                    <i class="fas fa-clover"></i> D轨道 (四叶草形)
-                </button>
-                <button class="orbital-btn" data-orbital="f">
-                    <i class="fas fa-star"></i> F轨道 (复杂形状)
-                </button>
-            </div>
-            <div class="info-box">
-                <i class="fas fa-info-circle"></i> 
-                <strong>原子轨道</strong>：描述电子在原子核周围运动的空间区域，不同轨道具有不同的形状和空间取向。
-            </div>
-        </div>
-        
-        <!-- 控制面板 -->
-        <div class="controls-panel">
-            <h3><i class="fas fa-sliders-h"></i> 动画控制</h3>
-            
-            <div class="control-group">
-                <label><i class="fas fa-tachometer-alt"></i> 旋转速度控制</label>
-                <input type="range" id="rotationSpeed" class="range-control" min="0" max="200" value="100">
-                <span id="speedValue">正常速度</span>
-            </div>
-            
-            <div class="control-group">
-                <button id="toggleRotation" class="btn-control">
-                    <i class="fas fa-pause"></i> 暂停旋转
-                </button>
-                <button id="resetView" class="btn-control">
+            <div class="nav-controls">
+                <button class="btn" id="reset-view">
                     <i class="fas fa-redo"></i> 重置视图
                 </button>
-                <button id="toggleLabels" class="btn-control">
-                    <i class="fas fa-tag"></i> 显示/隐藏标签
-                </button>
-                <button id="toggleClouds" class="btn-control">
-                    <i class="fas fa-cloud"></i> 显示/隐藏电子云
+                <button class="btn btn-primary" id="toggle-animation">
+                    <i class="fas fa-play"></i> 播放动画
                 </button>
             </div>
-        </div>
+        </header>
         
-        <!-- 量子数显示 -->
-        <div id="quantumNumbers" class="controls-panel">
-            <h3><i class="fas fa-hashtag"></i> 量子数</h3>
-            <p>量子数用于描述原子中电子的运动状态：</p>
-            <!-- 这里会通过JS动态生成 -->
-        </div>
-        
-        <!-- 电子排布规律 -->
-        <div id="electronRules" class="controls-panel">
-            <h3><i class="fas fa-list-ol"></i> 电子排布规律</h3>
-            <p>电子在原子轨道中的排布遵循以下三个基本规则：</p>
-            <!-- 这里会通过JS动态生成 -->
-        </div>
-        
-        <!-- 章节内容说明 -->
-        <div class="chapter-content">
-            <h2 class="section-title">本章内容概述</h2>
-            <p>本章通过三维动画展示原子结构的基本概念，包括：</p>
-            
-            <ul class="concept-list">
-                <li>
-                    <i class="fas fa-circle concept-icon"></i>
-                    <strong>原子轨道</strong>：s、p、d、f轨道的空间形状
-                </li>
-                <li>
-                    <i class="fas fa-cloud concept-icon"></i>
-                    <strong>电子云分布</strong>：电子在原子核周围出现的概率密度
-                </li>
-                <li>
-                    <i class="fas fa-hashtag concept-icon"></i>
-                    <strong>量子数</strong>：主量子数、角量子数、磁量子数、自旋量子数
-                </li>
-                <li>
-                    <i class="fas fa-list-ol concept-icon"></i>
-                    <strong>电子排布规律</strong>：能量最低原理、泡利不相容原理、洪特规则
-                </li>
-            </ul>
-            
-            <h3 class="section-title">当前轨道：S轨道</h3>
-            <ul class="concept-list">
-                <li><strong>轨道形状</strong>：球形对称</li>
-                <li><strong>角量子数 (l)</strong>：0</li>
-                <li><strong>磁量子数 (m)</strong>：0</li>
-                <li><strong>轨道数量</strong>：1个</li>
-                <li><strong>电子容量</strong>：最多容纳2个电子</li>
-                <li><strong>能级</strong>：1s, 2s, 3s, ...</li>
-                <li><strong>电子云特征</strong>：离核越近，电子出现概率越大</li>
-            </ul>
-            
-            <div class="info-box">
-                <i class="fas fa-lightbulb"></i>
-                <strong>电子云概念</strong>：电子云是用统计方法描述的电子在原子核外空间出现的概率分布。图中点云密度越高表示电子在该区域出现的概率越大。
-            </div>
-            
-            <h3 class="section-title">操作指南</h3>
-            <div class="operation-guide">
-                <div class="operation-item">
-                    <i class="fas fa-mouse-pointer fa-2x concept-icon"></i>
-                    <h4>鼠标拖拽</h4>
-                    <p>旋转原子模型</p>
+        <div class="main-content">
+            <div class="visualization-section">
+                <div class="section-title">
+                    <i class="fas fa-globe-americas"></i>
+                    <span>原子轨道三维可视化</span>
                 </div>
-                <div class="operation-item">
-                    <i class="fas fa-mouse fa-2x concept-icon"></i>
-                    <h4>鼠标滚轮</h4>
-                    <p>缩放视图</p>
-                </div>
-                <div class="operation-item">
-                    <i class="fas fa-expand-alt fa-2x concept-icon"></i>
-                    <h4>右键拖拽</h4>
-                    <p>平移视图</p>
-                </div>
-                <div class="operation-item">
-                    <i class="fas fa-exchange-alt fa-2x concept-icon"></i>
-                    <h4>轨道切换</h4>
-                    <p>点击上方按钮查看不同轨道</p>
+                <div id="atom-canvas"></div>
+                <div class="loading" id="loading">加载3D模型中...</div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ff4040;"></div>
+                        <span>原子核</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #40a9ff;"></div>
+                        <span>s轨道</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #ffaa40;"></div>
+                        <span>p轨道</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background-color: #40ff80;"></div>
+                        <span>d轨道</span>
+                    </div>
                 </div>
             </div>
             
-            <h3 class="section-title">学习目标</h3>
-            <ul class="concept-list">
-                <li>理解不同原子轨道的空间形状和特征</li>
-                <li>掌握量子数的物理意义和取值规则</li>
-                <li>了解电子云的概率密度概念</li>
-                <li>掌握电子排布的三个基本原理</li>
-                <li>能够通过三维模型直观理解原子结构</li>
-            </ul>
+            <div class="controls-section">
+                <div class="tab-container">
+                    <button class="tab active" data-tab="orbital-control">轨道控制</button>
+                    <button class="tab" data-tab="quantum-control">量子数</button>
+                    <button class="tab" data-tab="electron-config">电子排布</button>
+                </div>
+                
+                <div class="tab-content">
+                    <div class="tab-pane active" id="orbital-control">
+                        <div class="control-group">
+                            <label class="control-label">选择原子轨道类型</label>
+                            <div class="orbital-buttons">
+                                <button class="orbital-btn active" data-orbital="s">s轨道 (球形)</button>
+                                <button class="orbital-btn" data-orbital="p">p轨道 (哑铃形)</button>
+                                <button class="orbital-btn" data-orbital="d">d轨道 (花瓣形)</button>
+                                <button class="orbital-btn" data-orbital="all">所有轨道</button>
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label class="control-label">轨道显示设置</label>
+                            <div class="slider-container">
+                                <div class="slider-label">
+                                    <span>轨道不透明度</span>
+                                    <span id="opacity-value">70%</span>
+                                </div>
+                                <input type="range" min="10" max="100" value="70" class="slider" id="opacity-slider">
+                            </div>
+                            
+                            <div class="slider-container">
+                                <div class="slider-label">
+                                    <span>电子云密度</span>
+                                    <span id="density-value">50%</span>
+                                </div>
+                                <input type="range" min="10" max="100" value="50" class="slider" id="density-slider">
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label class="control-label">视角控制</label>
+                            <div class="slider-container">
+                                <div class="slider-label">
+                                    <span>旋转速度</span>
+                                    <span id="rotation-value">0.5</span>
+                                </div>
+                                <input type="range" min="0" max="100" value="50" class="slider" id="rotation-slider">
+                            </div>
+                            
+                            <div class="slider-container">
+                                <div class="slider-label">
+                                    <span>缩放级别</span>
+                                    <span id="zoom-value">1.0</span>
+                                </div>
+                                <input type="range" min="10" max="200" value="100" class="slider" id="zoom-slider">
+                            </div>
+                        </div>
+                        
+                        <div class="control-group">
+                            <label class="control-label">
+                                <input type="checkbox" id="show-nucleus" checked> 显示原子核
+                            </label>
+                            <label class="control-label">
+                                <input type="checkbox" id="show-electrons" checked> 显示电子
+                            </label>
+                            <label class="control-label">
+                                <input type="checkbox" id="show-labels"> 显示标签
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane" id="quantum-control">
+                        <div class="control-group">
+                            <h3>量子数设置</h3>
+                            <p style="margin-bottom: 15px; color: #a0d2ff; line-height: 1.5;">
+                                量子数描述了原子中电子的量子状态。调整以下参数观察轨道变化。
+                            </p>
+                            
+                            <div class="slider-container">
+                                <div class="slider-label">
+                                    <span>主量子数 (n)</span>
+                                    <span id="n-value">1</span>
+                                </div>
+                                <input type="range" min="1" max="4" value="1" class="slider" id="n-slider">
+                                <p style="font-size: 13px; color: #a0d2ff; margin-top: 5px;">决定电子层和能量</p>
+                            </div>
+                            
+                            <div class="slider-container">
+                                <div class="slider-label">
+                                    <span>角量子数 (l)</span>
+                                    <span id="l-value">0</span>
+                                </div>
+                                <input type="range" min="0" max="3" value="0" class="slider" id="l-slider">
+                                <p style="font-size: 13px; color: #a0d2ff; margin-top: 5px;">0=s, 1=p, 2=d, 3=f</p>
+                            </div>
+                            
+                            <div class="slider-container">
+                                <div class="slider-label">
+                                    <span>磁量子数 (m)</span>
+                                    <span id="m-value">0</span>
+                                </div>
+                                <input type="range" min="-2" max="2" value="0" class="slider" id="m-slider">
+                                <p style="font-size: 13px; color: #a0d2ff; margin-top: 5px;">决定轨道空间取向</p>
+                            </div>
+                            
+                            <div class="quantum-number-display">
+                                <h4>当前量子数</h4>
+                                <div class="quantum-item">
+                                    <span>主量子数 (n):</span>
+                                    <span class="highlight" id="current-n">1</span>
+                                </div>
+                                <div class="quantum-item">
+                                    <span>角量子数 (l):</span>
+                                    <span class="highlight" id="current-l">0 (s轨道)</span>
+                                </div>
+                                <div class="quantum-item">
+                                    <span>磁量子数 (m):</span>
+                                    <span class="highlight" id="current-m">0</span>
+                                </div>
+                                <div class="quantum-item">
+                                    <span>自旋量子数 (s):</span>
+                                    <span class="highlight">±1/2</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane" id="electron-config">
+                        <div class="control-group">
+                            <h3>电子排布规律</h3>
+                            <p style="margin-bottom: 15px; color: #a0d2ff; line-height: 1.5;">
+                                根据以下原理确定原子中电子的排布方式：
+                            </p>
+                            
+                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(5, 15, 30, 0.8); border-radius: 8px;">
+                                <h4 style="color: #7cd0ff; margin-bottom: 10px;">能量最低原理</h4>
+                                <p style="color: #c2e0ff; font-size: 14px; line-height: 1.5;">
+                                    电子优先占据能量最低的轨道，使整个原子体系能量最低。
+                                </p>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(5, 15, 30, 0.8); border-radius: 8px;">
+                                <h4 style="color: #7cd0ff; margin-bottom: 10px;">泡利不相容原理</h4>
+                                <p style="color: #c2e0ff; font-size: 14px; line-height: 1.5;">
+                                    一个原子轨道中最多容纳两个电子，且这两个电子自旋方向必须相反。
+                                </p>
+                            </div>
+                            
+                            <div style="margin-bottom: 20px; padding: 15px; background: rgba(5, 15, 30, 0.8); border-radius: 8px;">
+                                <h4 style="color: #7cd0ff; margin-bottom: 10px;">洪特规则</h4>
+                                <p style="color: #c2e0ff; font-size: 14px; line-height: 1.5;">
+                                    在等价轨道上，电子尽可能分占不同轨道且自旋平行。
+                                </p>
+                            </div>
+                            
+                            <div class="control-group">
+                                <label class="control-label">选择元素查看电子排布</label>
+                                <select id="element-select" class="orbital-btn" style="width: 100%; padding: 12px; margin-top: 5px;">
+                                    <option value="H">氢 (H) - 1s¹</option>
+                                    <option value="He">氦 (He) - 1s²</option>
+                                    <option value="C">碳 (C) - 1s² 2s² 2p²</option>
+                                    <option value="Ne">氖 (Ne) - 1s² 2s² 2p⁶</option>
+                                    <option value="Na">钠 (Na) - [Ne] 3s¹</option>
+                                    <option value="Fe">铁 (Fe) - [Ar] 4s² 3d⁶</option>
+                                </select>
+                            </div>
+                            
+                            <div class="quantum-number-display">
+                                <h4 id="selected-element">氢 (H) 电子排布</h4>
+                                <div id="electron-config-display">
+                                    1s¹
+                                </div>
+                                <div style="margin-top: 15px; font-size: 13px; color: #a0d2ff;">
+                                    点击上方元素查看其电子排布在轨道中的分布。
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
+        
+        <div class="info-section">
+            <div class="info-card">
+                <h3><i class="fas fa-shapes"></i> 原子轨道类型</h3>
+                <ul>
+                    <li><span class="highlight">s轨道</span>：球形对称，每个电子层有1个s轨道</li>
+                    <li><span class="highlight">p轨道</span>：哑铃形，每个电子层有3个p轨道(px, py, pz)</li>
+                    <li><span class="highlight">d轨道</span>：花瓣形，从第三层开始出现，有5个d轨道</li>
+                    <li><span class="highlight">f轨道</span>：形状更复杂，从第四层开始出现，有7个f轨道</li>
+                </ul>
+            </div>
+            
+            <div class="info-card">
+                <h3><i class="fas fa-cloud"></i> 电子云分布</h3>
+                <ul>
+                    <li>电子云表示电子在原子核周围出现的<span class="highlight">概率密度</span></li>
+                    <li>颜色越深表示电子出现的<span class="highlight">概率越大</span></li>
+                    <li>s轨道电子云呈球形对称分布</li>
+                    <li>p轨道电子云沿坐标轴方向分布</li>
+                    <li>电子云没有明确的边界，通常用90%概率界面表示</li>
+                </ul>
+            </div>
+            
+            <div class="info-card">
+                <h3><i class="fas fa-atom"></i> 本章重点</h3>
+                <ul>
+                    <li>理解原子轨道的空间形状和方向性</li>
+                    <li>掌握四个量子数的物理意义和取值范围</li>
+                    <li>熟悉电子排布的三大规律</li>
+                    <li>能够根据量子数确定轨道类型和电子状态</li>
+                    <li>理解电子云的概率密度概念</li>
+                </ul>
+            </div>
+        </div>
+        
+        <footer class="footer">
+            <p>原子结构三维动画演示系统 | 量子化学教学工具 | 版本 2.0</p>
+            <p>使用 Three.js 构建 | 更新时间: <span id="current-date"></span></p>
+        </footer>
     </div>
+
+    <!-- Three.js 库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- OrbitControls 用于摄像机控制 -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
     
-    <!-- 引入第1章原子结构动画脚本 -->
-    <script src="js/chapter1-animation.js"></script>
+    <!-- 主脚本 -->
+    <script src="chapter2-animation.js"></script>
+    
+    <script>
+        // 设置当前日期
+        document.getElementById('current-date').textContent = new Date().toLocaleDateString('zh-CN', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
+        });
+    </script>
 </body>
 </html>
