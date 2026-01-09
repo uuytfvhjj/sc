@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分子对称性与群论基础 | 结构化学三维动画实验室</title>
+    
+    <!-- 字体 -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@300;400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Three.js库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.min.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --secondary: #3498db;
+            --accent: #9b59b6;
+            --light: #ecf0f1;
+            --dark: #2c3e50;
+            --gray: #95a5a6;
+            --border: #dfe6e9;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: var(--dark);
+            background: #f9f9f9;
+            overflow-x: hidden;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+        
+        /* 顶部导航栏 */
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 0;
+            border-bottom: 1px solid var(--border);
+            background: white;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.05);
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+        }
+        
+        .university-logo {
+            width: 50px;
+            height: 50px;
+            margin-right: 15px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(44, 62, 80, 0.1);
+        }
+        
+        .university-logo img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        
+        .logo-content {
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .university-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--dark);
+            margin-bottom: 2px;
+        }
+        
+        .site-name {
+            font-size: 12px;
+            color: var(--gray);
+            font-weight: 400;
+        }
+        
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            background: var(--light);
+            color: var(--dark);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: 500;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+        }
+        
+        .back-btn:hover {
+            background: var(--secondary);
+            color: white;
+            border-color: var(--secondary);
+        }
+        
+        .back-btn i {
+            margin-right: 8px;
+        }
+        
+        /* 主标题 */
+        .main-title {
+            text-align: center;
+            padding: 30px 0 20px;
+        }
+        
+        .main-title h1 {
+            font-size: 2.2rem;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 10px;
+            position: relative;
+            display: inline-block;
+        }
+        
+        .main-title h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 3px;
+            background: var(--accent);
+            border-radius: 2px;
+        }
+        
+        .main-title p {
+            font-size: 1rem;
+            color: var(--gray);
+            max-width: 800px;
+            margin: 20px auto 0;
+            line-height: 1.8;
+        }
+        
+        /* 主内容区 */
+        .content-wrapper {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            margin: 30px 0 40px;
+        }
+        
+        /* 3D模型容器 */
+        .model-container {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .model-header {
+            background: var(--primary);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .model-header h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        .model-actions {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .model-btn {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: background 0.3s ease;
+        }
+        
+        .model-btn:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .model-btn.active {
+            background: var(--accent);
+        }
+        
+        #moleculeCanvas {
+            width: 100%;
+            height: 500px;
+            background: #f8f9fa;
+        }
+        
+        /* 控制面板 */
+        .control-panel {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.08);
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .panel-header {
+            background: var(--accent);
+            color: white;
+            padding: 15px 20px;
+        }
+        
+        .panel-header h3 {
+            font-size: 1.2rem;
+            font-weight: 600;
+        }
+        
+        .panel-content {
+            padding: 20px;
+            flex-grow: 1;
+            overflow-y: auto;
+            max-height: 500px;
+        }
+        
+        .symmetry-section {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .symmetry-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+        }
+        
+        .symmetry-section h4 {
+            font-size: 1.1rem;
+            color: var(--dark);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .symmetry-section h4 i {
+            margin-right: 10px;
+            color: var(--accent);
+        }
+        
+        .symmetry-section p {
+            color: var(--gray);
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+            line-height: 1.7;
+        }
+        
+        .symmetry-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .symmetry-btn {
+            background: var(--light);
+            color: var(--dark);
+            border: 1px solid var(--border);
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+        }
+        
+        .symmetry-btn i {
+            margin-right: 8px;
+        }
+        
+        .symmetry-btn:hover {
+            background: var(--secondary);
+            color: white;
+            border-color: var(--secondary);
+        }
+        
+        .symmetry-btn.active {
+            background: var(--accent);
+            color: white;
+            border-color: var(--accent);
+        }
+        
+        .molecule-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .molecule-option {
+            padding: 8px 15px;
+            background: var(--light);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .molecule-option:hover {
+            background: #e3e6e8;
+        }
+        
+        .molecule-option.active {
+            background: var(--secondary);
+            color: white;
+            border-color: var(--secondary);
+        }
+        
+        /* 信息面板 */
+        .info-panel {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-top: 15px;
+            border-left: 4px solid var(--accent);
+        }
+        
+        .info-panel h5 {
+            color: var(--dark);
+            margin-bottom: 8px;
+            font-size: 0.95rem;
+        }
+        
+        .info-panel p {
+            color: var(--gray);
+            font-size: 0.85rem;
+            line-height: 1.6;
+        }
+        
+        /* 页脚 */
+        .footer {
+            background: var(--primary);
+            color: white;
+            padding: 30px 0 20px;
+            margin-top: 40px;
+        }
+        
+        .footer-content {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+        
+        .footer-logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .footer-logo i {
+            color: var(--accent);
+            margin-right: 8px;
+        }
+        
+        .copyright {
+            color: rgba(255,255,255,0.7);
+            font-size: 0.9rem;
+            margin-top: 15px;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 992px) {
+            .content-wrapper {
+                flex-direction: column;
+            }
+            
+            .model-container, .control-panel {
+                width: 100%;
+            }
+            
+            #moleculeCanvas {
+                height: 400px;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .main-title h1 {
+                font-size: 1.8rem;
+            }
+            
+            .header {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px 0;
+            }
+            
+            .header-left {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            #moleculeCanvas {
+                height: 350px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部导航栏 -->
+    <header class="header">
+        <div class="container" style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;">
+            <div class="header-left">
+                <!-- 校徽 -->
+                <div class="university-logo">
+                    <img src="images/suse-logo.png" alt="四川轻化工大学校徽">
+                </div>
+                
+                <div class="logo-content">
+                    <div class="university-name">四川轻化工大学</div>
+                    <div class="site-name">结构化学三维动画实验室</div>
+                </div>
+            </div>
+            
+            <a href="index.html" class="back-btn">
+                <i class="fas fa-arrow-left"></i> 返回主页
+            </a>
+        </div>
+    </header>
+
+    <!-- 主标题 -->
+    <section class="main-title">
+        <div class="container">
+            <h1>分子对称性与群论基础</h1>
+            <p>
+                本页面演示分子对称性的基本概念和操作，包括恒等操作、旋转操作、反射操作、反演操作和旋转反射操作。
+                通过3D交互模型，直观展示分子对称操作如何保持分子构型不变。
+            </p>
+        </div>
+    </section>
+
+    <!-- 主内容区 -->
+    <div class="container">
+        <div class="content-wrapper">
+            <!-- 3D模型容器 -->
+            <div class="model-container">
+                <div class="model-header">
+                    <h3>分子对称性3D演示</h3>
+                    <div class="model-actions">
+                        <button class="model-btn active" id="resetBtn">重置视图</button>
+                        <button class="model-btn" id="autoRotateBtn">自动旋转</button>
+                        <button class="model-btn" id="toggleLabelsBtn">显示标签</button>
+                    </div>
+                </div>
+                <div id="moleculeCanvas"></div>
+            </div>
+            
+            <!-- 控制面板 -->
+            <div class="control-panel">
+                <div class="panel-header">
+                    <h3>对称操作控制面板</h3>
+                </div>
+                <div class="panel-content">
+                    <!-- 分子选择 -->
+                    <div class="symmetry-section">
+                        <h4><i class="fas fa-molecule"></i> 选择分子模型</h4>
+                        <p>选择不同分子观察其对称性特征</p>
+                        <div class="molecule-selector">
+                            <div class="molecule-option active" data-molecule="methane">CH₄（四面体）</div>
+                            <div class="molecule-option" data-molecule="benzene">C₆H₆（苯）</div>
+                            <div class="molecule-option" data-molecule="water">H₂O（水）</div>
+                            <div class="molecule-option" data-molecule="ammonia">NH₃（氨）</div>
+                        </div>
+                    </div>
+                    
+                    <!-- 恒等操作 -->
+                    <div class="symmetry-section">
+                        <h4><i class="fas fa-equals"></i> 恒等操作 (E)</h4>
+                        <p>不进行任何操作，所有分子都具有此对称性，分子构型保持不变。</p>
+                        <div class="symmetry-controls">
+                            <button class="symmetry-btn" id="identityBtn">
+                                <i class="fas fa-play"></i> 演示恒等操作
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 旋转操作 -->
+                    <div class="symmetry-section">
+                        <h4><i class="fas fa-sync-alt"></i> 旋转操作 (C<sub>n</sub>)</h4>
+                        <p>绕轴旋转360°/n角度，旋转后分子构型与原始构型不可区分。</p>
+                        <div class="symmetry-controls">
+                            <button class="symmetry-btn" data-rotation="C2">
+                                <i class="fas fa-redo"></i> C₂（180°旋转）
+                            </button>
+                            <button class="symmetry-btn" data-rotation="C3">
+                                <i class="fas fa-redo"></i> C₃（120°旋转）
+                            </button>
+                            <button class="symmetry-btn" data-rotation="C4">
+                                <i class="fas fa-redo"></i> C₄（90°旋转）
+                            </button>
+                            <button class="symmetry-btn" data-rotation="C6">
+                                <i class="fas fa-redo"></i> C₆（60°旋转）
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 反射操作 -->
+                    <div class="symmetry-section">
+                        <h4><i class="fas fa-expand-alt"></i> 反射操作 (σ)</h4>
+                        <p>相对于平面进行镜像反射，分子与其镜像完全重合。</p>
+                        <div class="symmetry-controls">
+                            <button class="symmetry-btn" data-reflection="horizontal">
+                                <i class="fas fa-arrows-alt-h"></i> 水平反射 σ<sub>h</sub>
+                            </button>
+                            <button class="symmetry-btn" data-reflection="vertical">
+                                <i class="fas fa-arrows-alt-v"></i> 垂直反射 σ<sub>v</sub>
+                            </button>
+                            <button class="symmetry-btn" data-reflection="dihedral">
+                                <i class="fas fa-arrows-alt"></i> 对角反射 σ<sub>d</sub>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 反演操作 -->
+                    <div class="symmetry-section">
+                        <h4><i class="fas fa-bullseye"></i> 反演操作 (i)</h4>
+                        <p>通过分子中心进行反演，每个原子通过中心映射到对面位置。</p>
+                        <div class="symmetry-controls">
+                            <button class="symmetry-btn" id="inversionBtn">
+                                <i class="fas fa-crosshairs"></i> 演示反演操作
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 旋转反射操作 -->
+                    <div class="symmetry-section">
+                        <h4><i class="fas fa-sync"></i> 旋转反射操作 (S<sub>n</sub>)</h4>
+                        <p>旋转与垂直平面反射的组合操作。</p>
+                        <div class="symmetry-controls">
+                            <button class="symmetry-btn" data-rotation-reflection="S4">
+                                <i class="fas fa-random"></i> S₄（90°旋转+反射）
+                            </button>
+                            <button class="symmetry-btn" data-rotation-reflection="S6">
+                                <i class="fas fa-random"></i> S₆（60°旋转+反射）
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- 信息面板 -->
+                    <div class="info-panel">
+                        <h5><i class="fas fa-lightbulb"></i> 使用提示</h5>
+                        <p>
+                            • 点击对称操作按钮查看3D动画演示<br>
+                            • 使用鼠标拖拽旋转分子模型<br>
+                            • 使用鼠标滚轮缩放模型<br>
+                            • 点击"重置视图"恢复初始视角
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <i class="fas fa-flask"></i> 结构化学实验室
+                </div>
+                <p>四川轻化工大学化学与环境工程学院</p>
+                <p>提供结构化学教学辅助的三维可视化工具</p>
+                <div class="copyright">
+                    © 2023 结构化学三维动画实验室 | 第3章：分子对称性与群论基础
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 加载JS文件 -->
+    <script src="js/chapter3.js"></script>
+</body>
+</html>
