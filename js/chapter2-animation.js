@@ -758,7 +758,7 @@ function getElementDescription(element) {
 window.addEventListener('DOMContentLoaded', function() {
     console.log("DOM加载完成，开始初始化3D场景...");
     
-    // 等待Three.js库加载
+    // 等待Three.js库加载得到
     if (typeof THREE === 'undefined') {
         console.warn("Three.js未加载，等待库加载...");
         const checkInterval = setInterval(() => {
