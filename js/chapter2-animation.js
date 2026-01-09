@@ -1,10 +1,6 @@
 /**
  * 原子结构三维动画 - Chapter 2
- * 严格按照第一次对话要求实现：
- * 1. 原子轨道：s、p、d轨道的空间形状
- * 2. 电子云分布：电子在原子核周围出现的概率密度
- * 3. 量子数：主量子数、角量子数、磁量子数、自旋量子数
- * 4. 电子排布规律：能量最低原理、泡利不相容原理、洪特规则
+ * 原子轨道可视化与量子数交互
  */
 
 // 主Three.js变量
@@ -43,47 +39,67 @@ const colors = {
 function init() {
     console.log("原子结构三维动画 - 第二章");
     
+    // 获取canvas元素
+    const canvas = document.getElementById('atom-canvas');
+    const loadingElement = document.getElementById('loading');
+    
+    if (!canvas) {
+        loadingElement.innerHTML = '<span style="color:#ff4040">找不到Canvas元素</span>';
+        return;
+    }
+    
+    // 检查Three.js是否加载
+    if (typeof THREE === 'undefined') {
+        loadingElement.innerHTML = '<span style="color:#ff4040">Three.js库加载失败，请刷新页面</span>';
+        return;
+    }
+    
+    // 检查WebGL支持
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    if (!gl) {
+        loadingElement.innerHTML = `
+            <div style="color:#ff4040;text-align:center;padding:20px;">
+                <h3>WebGL不支持</h3>
+                <p>您的浏览器不支持WebGL，无法显示3D内容。</p>
+                <p>请使用Chrome、Firefox或Edge浏览器，并确保启用WebGL。</p>
+                <button onclick="init2DFallback()" style="margin-top:10px;padding:8px 16px;background:#40a9ff;border:none;border-radius:4px;color:white;cursor:pointer;">
+                    使用2D备用方案
+                </button>
+            </div>
+        `;
+        return;
+    }
+    
     try {
-        // 检查Three.js是否加载
-        if (typeof THREE === 'undefined') {
-            throw new Error("Three.js库未加载");
-        }
-        
-        // 获取canvas元素
-        const canvas = document.getElementById('atom-canvas');
-        if (!canvas) {
-            throw new Error("找不到canvas元素");
-        }
-        
-        // 检查WebGL支持
-        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        if (!gl) {
-            throw new Error("您的浏览器不支持WebGL，请使用Chrome、Firefox或Edge浏览器");
-        }
-        
         // 1. 创建场景
         scene = new THREE.Scene();
         scene.background = new THREE.Color(colors.background);
         
         // 2. 创建相机
-        camera = new THREE.PerspectiveCamera(60, canvas.clientWidth / canvas.clientHeight, 0.1, 1000);
+        const aspect = canvas.clientWidth / canvas.clientHeight;
+        camera = new THREE.PerspectiveCamera(60, aspect, 0.1, 1000);
         camera.position.set(15, 10, 15);
         
         // 3. 创建渲染器
         renderer = new THREE.WebGLRenderer({ 
-            antialias: true, 
+            antialias: true,
             alpha: true,
             canvas: canvas 
         });
         renderer.setSize(canvas.clientWidth, canvas.clientHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
-        canvas.appendChild(renderer.domElement);
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         
         // 4. 添加轨道控制器
         if (typeof THREE.OrbitControls !== 'undefined') {
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
+            controls.minDistance = 5;
+            controls.maxDistance = 50;
+        } else {
+            console.warn("OrbitControls未加载，使用基础控制");
         }
         
         // 5. 添加灯光
@@ -99,37 +115,33 @@ function init() {
         createAtomModel();
         
         // 7. 隐藏加载提示
-        const loadingElement = document.getElementById('loading');
-        if (loadingElement) {
-            loadingElement.style.opacity = '0';
-            setTimeout(() => {
-                loadingElement.style.display = 'none';
-            }, 300);
-        }
+        loadingElement.style.opacity = '0';
+        setTimeout(() => {
+            loadingElement.style.display = 'none';
+        }, 500);
         
         console.log("3D场景初始化成功!");
         
-        // 8. 添加窗口大小调整监听
+        // 8. 开始动画循环
+        animate();
+        
+        // 9. 窗口大小调整监听
         window.addEventListener('resize', onWindowResize);
         
-        // 9. 初始化UI事件
+        // 10. 初始化UI事件
         initUIEvents();
-        
-        // 10. 开始动画循环
-        animate();
         
     } catch (error) {
         console.error("初始化失败:", error);
-        const loadingElement = document.getElementById('loading');
-        if (loadingElement) {
-            loadingElement.innerHTML = `<div style="color:#ff4040;text-align:center;padding:20px;">
-                <h3>初始化失败</h3>
+        loadingElement.innerHTML = `
+            <div style="color:#ff4040;text-align:center;padding:20px;">
+                <h3>3D初始化失败</h3>
                 <p>${error.message}</p>
-                <button onclick="location.reload()" style="margin-top:10px;padding:8px 16px;background:#40a9ff;border:none;border-radius:4px;color:white;cursor:pointer;">
-                    刷新页面
+                <button onclick="init2DFallback()" style="margin-top:10px;padding:8px 16px;background:#40a9ff;border:none;border-radius:4px;color:white;cursor:pointer;">
+                    使用2D备用方案
                 </button>
-            </div>`;
-        }
+            </div>
+        `;
     }
 }
 
@@ -145,12 +157,11 @@ function createAtomModel() {
     
     // 创建原子核
     if (config.showNucleus) {
-        const nucleusGeometry = new THREE.SphereGeometry(1.5, 32, 32);
+        const nucleusGeometry = new THREE.SphereGeometry(1.2, 24, 24);
         const nucleusMaterial = new THREE.MeshPhongMaterial({ 
             color: colors.nucleus,
-            shininess: 100,
-            transparent: true,
-            opacity: 0.9
+            shininess: 50,
+            emissive: 0x660000
         });
         nucleus = new THREE.Mesh(nucleusGeometry, nucleusMaterial);
         nucleus.castShadow = true;
@@ -168,32 +179,31 @@ function createAtomModel() {
 
 // 创建轨道
 function createOrbitals() {
-    const { currentOrbital } = config;
+    const orbitalType = config.currentOrbital;
     
-    if (currentOrbital === 's' || currentOrbital === 'all') {
+    if (orbitalType === 's' || orbitalType === 'all') {
         createSOrbital();
     }
     
-    if (currentOrbital === 'p' || currentOrbital === 'all') {
+    if (orbitalType === 'p' || orbitalType === 'all') {
         createPOrbitals();
     }
     
-    if (currentOrbital === 'd' || currentOrbital === 'all') {
+    if (orbitalType === 'd' || orbitalType === 'all') {
         createDOrbitals();
     }
     
-    // 更新轨道不透明度
     updateOrbitalOpacity();
 }
 
 // 创建s轨道（球形）
 function createSOrbital() {
-    const geometry = new THREE.SphereGeometry(6, 64, 64);
-    const material = new THREE.MeshPhongMaterial({
+    const geometry = new THREE.SphereGeometry(5, 32, 32);
+    const material = new THREE.MeshBasicMaterial({
         color: colors.sOrbital,
+        wireframe: true,
         transparent: true,
         opacity: config.opacity * 0.8,
-        wireframe: true,
         side: THREE.DoubleSide
     });
     
@@ -202,79 +212,81 @@ function createSOrbital() {
     scene.add(sOrbital);
     orbitals.push(sOrbital);
     
-    // 添加电子云点
-    createElectronCloud('s', 6, colors.sOrbital);
+    // 创建电子云
+    createElectronCloud('s', 5, colors.sOrbital);
 }
 
 // 创建p轨道（三个哑铃形轨道）
 function createPOrbitals() {
-    const pColors = [0xff6b6b, 0x4ecdc4, 0xffd166];
-    const pAxes = ['x', 'y', 'z'];
+    const pAxes = [
+        { axis: 'x', rotation: { z: Math.PI / 2 } },
+        { axis: 'y', rotation: {} },
+        { axis: 'z', rotation: { x: Math.PI / 2 } }
+    ];
     
-    for (let i = 0; i < 3; i++) {
-        // 创建p轨道哑铃形状
-        const geometry = new THREE.CylinderGeometry(1.5, 1.5, 12, 8);
-        const material = new THREE.MeshPhongMaterial({
-            color: pColors[i],
+    pAxes.forEach((axisObj, index) => {
+        const pColors = [0xff6b6b, 0x4ecdc4, 0xffd166];
+        
+        // 创建哑铃形状
+        const geometry = new THREE.CylinderGeometry(1.2, 1.2, 10, 8);
+        const material = new THREE.MeshBasicMaterial({
+            color: pColors[index],
+            wireframe: true,
             transparent: true,
             opacity: config.opacity * 0.7,
-            wireframe: true,
             side: THREE.DoubleSide
         });
         
         const pOrbital = new THREE.Mesh(geometry, material);
-        pOrbital.name = `p-orbital-${pAxes[i]}`;
+        pOrbital.name = `p-orbital-${axisObj.axis}`;
         
-        // 根据轴旋转
-        if (pAxes[i] === 'x') {
-            pOrbital.rotation.z = Math.PI / 2;
-        } else if (pAxes[i] === 'z') {
-            pOrbital.rotation.x = Math.PI / 2;
-        }
+        // 应用旋转
+        Object.keys(axisObj.rotation).forEach(key => {
+            pOrbital.rotation[key] = axisObj.rotation[key];
+        });
         
         scene.add(pOrbital);
         orbitals.push(pOrbital);
         
-        // 添加电子云点
-        createElectronCloud('p', 5, pColors[i], pAxes[i]);
-    }
+        // 创建电子云
+        createElectronCloud('p', 6, pColors[index], axisObj.axis);
+    });
 }
 
-// 创建d轨道（五个花瓣形轨道）
+// 创建d轨道（简化版）
 function createDOrbitals() {
     const dColors = [0x9d4edd, 0xff9e00, 0x4cc9f0, 0xf72585, 0x4361ee];
     
-    for (let i = 0; i < 5; i++) {
-        // 创建d轨道形状（简化版本）
-        const geometry = new THREE.TorusGeometry(5, 1.5, 16, 100);
-        const material = new THREE.MeshPhongMaterial({
+    for (let i = 0; i < 4; i++) {
+        const geometry = new THREE.TorusGeometry(4, 1.2, 8, 16);
+        const material = new THREE.MeshBasicMaterial({
             color: dColors[i],
+            wireframe: true,
             transparent: true,
             opacity: config.opacity * 0.6,
-            wireframe: true,
             side: THREE.DoubleSide
         });
         
         const dOrbital = new THREE.Mesh(geometry, material);
         dOrbital.name = `d-orbital-${i}`;
         dOrbital.rotation.x = Math.PI / 4;
-        dOrbital.rotation.y = (i * Math.PI) / 5;
+        dOrbital.rotation.y = (i * Math.PI) / 4;
         
         scene.add(dOrbital);
         orbitals.push(dOrbital);
         
-        // 添加电子云点
+        // 创建电子云
         createElectronCloud('d', 7, dColors[i]);
     }
 }
 
-// 创建电子云点
+// 创建电子云
 function createElectronCloud(type, radius, color, axis = null) {
-    const cloudPoints = Math.floor(config.density * 300);
+    const cloudPoints = Math.floor(config.density * 200);
     const pointsGeometry = new THREE.BufferGeometry();
     const pointsMaterial = new THREE.PointsMaterial({
         color: color,
-        size: 0.15,
+        size: 0.2,
         transparent: true,
         opacity: config.opacity * 0.5
     });
@@ -285,7 +297,7 @@ function createElectronCloud(type, radius, color, axis = null) {
         let x, y, z;
         
         if (type === 's') {
-            // 球形分布 - 电子在原子核周围出现的概率密度
+            // 球形分布
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
             const r = radius * Math.random();
@@ -294,27 +306,27 @@ function createElectronCloud(type, radius, color, axis = null) {
             y = r * Math.sin(phi) * Math.sin(theta);
             z = r * Math.cos(phi);
         } else if (type === 'p') {
-            // 哑铃形分布（沿轴方向）
+            // 哑铃形分布
             x = (Math.random() - 0.5) * radius * 2;
             y = (Math.random() - 0.5) * radius * 2;
             z = (Math.random() - 0.5) * radius * 2;
             
-            // 增加轴方向的概率
+            // 根据轴增强分布
             if (axis === 'x') {
                 x *= 1.5;
-                y *= 0.3;
-                z *= 0.3;
+                y *= 0.4;
+                z *= 0.4;
             } else if (axis === 'y') {
-                x *= 0.3;
+                x *= 0.4;
                 y *= 1.5;
-                z *= 0.3;
+                z *= 0.4;
             } else if (axis === 'z') {
-                x *= 0.3;
-                y *= 0.3;
+                x *= 0.4;
+                y *= 0.4;
                 z *= 1.5;
             }
         } else {
-            // d轨道 - 花瓣形分布
+            // d轨道 - 复杂分布
             const theta = Math.random() * Math.PI * 2;
             const phi = Math.acos(2 * Math.random() - 1);
             const r = radius * Math.random();
@@ -323,12 +335,11 @@ function createElectronCloud(type, radius, color, axis = null) {
             y = r * Math.sin(phi) * Math.sin(theta);
             z = r * Math.cos(phi);
             
-            // 添加花瓣效果
+            // 添加一些方向性
             const angle = Math.atan2(y, x);
             if (Math.abs(Math.cos(2 * angle)) > 0.5) {
-                x *= 1.2;
-                y *= 1.2;
-                z *= 0.8;
+                x *= 1.3;
+                y *= 1.3;
             }
         }
         
@@ -345,61 +356,54 @@ function createElectronCloud(type, radius, color, axis = null) {
 // 创建电子
 function createElectrons() {
     let electronCount;
+    let electronRadius;
     
     switch(config.currentOrbital) {
         case 's':
-            electronCount = 2; // s轨道最多2个电子
+            electronCount = 2;
+            electronRadius = 5;
             break;
         case 'p':
-            electronCount = 6; // p轨道最多6个电子
+            electronCount = 6;
+            electronRadius = 6;
             break;
         case 'd':
-            electronCount = 10; // d轨道最多10个电子
+            electronCount = 10;
+            electronRadius = 7;
             break;
         case 'all':
-            electronCount = 18; // s(2) + p(6) + d(10)
+            electronCount = 18;
+            electronRadius = 8;
             break;
         default:
             electronCount = 2;
+            electronRadius = 5;
     }
     
     for (let i = 0; i < electronCount; i++) {
-        let radius, angle;
+        let x, y, z;
         
-        if (config.currentOrbital === 's') {
-            radius = 5;
-            angle = (i / electronCount) * Math.PI * 2;
-        } else if (config.currentOrbital === 'p') {
-            radius = 6;
-            angle = (i / electronCount) * Math.PI * 2;
-        } else if (config.currentOrbital === 'd') {
-            radius = 7;
-            angle = (i / electronCount) * Math.PI * 2;
-        } else {
-            // 所有轨道混合
-            radius = 4 + Math.random() * 4;
-            angle = Math.random() * Math.PI * 2;
-        }
-        
-        let x = Math.cos(angle) * radius;
-        let y = Math.sin(angle) * radius;
-        let z = (Math.random() - 0.5) * 3;
-        
-        // 对于所有轨道模式，更随机分布电子
         if (config.currentOrbital === 'all') {
-            x = (Math.random() - 0.5) * 10;
-            y = (Math.random() - 0.5) * 10;
-            z = (Math.random() - 0.5) * 10;
+            // 随机分布
+            x = (Math.random() - 0.5) * 12;
+            y = (Math.random() - 0.5) * 12;
+            z = (Math.random() - 0.5) * 12;
+        } else {
+            // 轨道分布
+            const angle = (i / electronCount) * Math.PI * 2;
+            x = Math.cos(angle) * electronRadius;
+            y = Math.sin(angle) * electronRadius;
+            z = (Math.random() - 0.5) * 2;
         }
         
-        const electronGeometry = new THREE.SphereGeometry(0.25, 16, 16);
-        const electronMaterial = new THREE.MeshPhongMaterial({
+        const geometry = new THREE.SphereGeometry(0.2, 12, 12);
+        const material = new THREE.MeshPhongMaterial({
             color: colors.electron,
             shininess: 100,
             emissive: 0x444400
         });
         
-        const electron = new THREE.Mesh(electronGeometry, electronMaterial);
+        const electron = new THREE.Mesh(geometry, material);
         electron.position.set(x, y, z);
         
         // 存储电子运动参数
@@ -407,7 +411,7 @@ function createElectrons() {
             originalPosition: { x, y, z },
             speed: 0.02 + Math.random() * 0.03,
             offset: Math.random() * Math.PI * 2,
-            radius: radius
+            radius: electronRadius
         };
         
         electron.castShadow = true;
@@ -452,9 +456,9 @@ function animate() {
         });
         
         // 电子运动
-        electrons.forEach((electron, index) => {
-            const time = Date.now() * 0.001;
+        electrons.forEach((electron) => {
             const data = electron.userData;
+            const time = Date.now() * 0.001;
             
             // 电子绕轨道运动
             const orbitRadius = data.radius || 5;
@@ -491,11 +495,9 @@ function initUIEvents() {
     // 轨道按钮
     document.querySelectorAll('.orbital-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            // 更新按钮状态
             document.querySelectorAll('.orbital-btn').forEach(b => b.classList.remove('active'));
             this.classList.add('active');
             
-            // 更新配置并重新创建模型
             config.currentOrbital = this.dataset.orbital;
             createAtomModel();
         });
@@ -523,7 +525,6 @@ function initUIEvents() {
             const value = this.value;
             densityValue.textContent = `${value}%`;
             config.density = value / 100;
-            // 密度变化需要重新创建电子云
             createAtomModel();
         });
     }
@@ -613,9 +614,7 @@ function initUIEvents() {
         const currentL = document.getElementById('current-l');
         const currentM = document.getElementById('current-m');
         
-        if (currentN) {
-            currentN.textContent = config.quantumNumbers.n;
-        }
+        if (currentN) currentN.textContent = config.quantumNumbers.n;
         
         if (currentL) {
             const l = config.quantumNumbers.l;
@@ -628,9 +627,7 @@ function initUIEvents() {
             currentL.textContent = lText;
         }
         
-        if (currentM) {
-            currentM.textContent = config.quantumNumbers.m;
-        }
+        if (currentM) currentM.textContent = config.quantumNumbers.m;
     }
     
     // 元素选择
@@ -665,7 +662,9 @@ function initUIEvents() {
             
             if (configDisplay) {
                 configDisplay.innerHTML = `
-                    <div style="font-size: 24px; text-align: center; color: #40a9ff; margin: 10px 0;">${electronConfigs[element]}</div>
+                    <div style="font-size: 24px; text-align: center; color: #40a9ff; margin: 10px 0;">
+                        ${electronConfigs[element]}
+                    </div>
                     <div style="font-size: 14px; color: #a0d2ff; text-align: center;">
                         ${getElementDescription(element)}
                     </div>
@@ -679,11 +678,9 @@ function initUIEvents() {
         tab.addEventListener('click', function() {
             const tabId = this.dataset.tab;
             
-            // 更新标签状态
             document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
             this.classList.add('active');
             
-            // 显示对应的内容
             document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
             const targetPane = document.getElementById(tabId);
             if (targetPane) {
@@ -734,7 +731,6 @@ function initUIEvents() {
     if (showLabels) {
         showLabels.addEventListener('change', function() {
             config.showLabels = this.checked;
-            // 这里可以添加标签显示/隐藏的逻辑
             console.log("显示标签:", config.showLabels);
         });
     }
@@ -754,41 +750,232 @@ function getElementDescription(element) {
     return descriptions[element] || '该元素的电子排布遵循能量最低原理、泡利不相容原理和洪特规则。';
 }
 
-// 页面加载完成后初始化
-window.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM加载完成，开始初始化3D场景...");
+// 2D备用方案
+function init2DFallback() {
+    const canvas = document.getElementById('atom-canvas');
+    const loading = document.getElementById('loading');
     
-    // 等待Three.js库加载得到
-    if (typeof THREE === 'undefined') {
-        console.warn("Three.js未加载，等待库加载...");
-        const checkInterval = setInterval(() => {
-            if (typeof THREE !== 'undefined') {
-                clearInterval(checkInterval);
-                console.log("Three.js已加载，开始初始化");
-                setTimeout(init, 100);
-            }
-        }, 100);
+    if (!canvas) return;
+    
+    loading.style.display = 'none';
+    
+    // 创建2D上下文
+    const ctx = canvas.getContext('2d');
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    
+    // 2D动画参数
+    let currentOrbital = 's';
+    let animationRunning = true;
+    let angle = 0;
+    
+    // 绘制原子函数
+    function draw2DAtom() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
         
-        // 10秒后超时
-        setTimeout(() => {
-            if (typeof THREE === 'undefined') {
-                clearInterval(checkInterval);
-                const loadingElement = document.getElementById('loading');
-                if (loadingElement) {
-                    loadingElement.innerHTML = `<div style="color:#ff4040;text-align:center;padding:20px;">
-                        <h3>Three.js加载超时</h3>
-                        <p>无法加载Three.js库，请检查网络连接</p>
-                        <button onclick="location.reload()" style="margin-top:10px;padding:8px 16px;background:#40a9ff;border:none;border-radius:4px;color:white;cursor:pointer;">
-                            刷新页面
-                        </button>
-                    </div>`;
+        const centerX = canvas.width / 2;
+        const centerY = canvas.height / 2;
+        const scale = Math.min(canvas.width, canvas.height) / 300;
+        
+        // 绘制原子核
+        ctx.beginPath();
+        ctx.arc(centerX, centerY, 15 * scale, 0, Math.PI * 2);
+        ctx.fillStyle = '#ff4040';
+        ctx.fill();
+        
+        // 根据轨道类型绘制
+        switch(currentOrbital) {
+            case 's':
+                draw2DSOrbital(ctx, centerX, centerY, scale);
+                break;
+            case 'p':
+                draw2DPOrbital(ctx, centerX, centerY, scale);
+                break;
+            case 'd':
+                draw2DDOrbital(ctx, centerX, centerY, scale);
+                break;
+            case 'all':
+                draw2DAllOrbitals(ctx, centerX, centerY, scale);
+                break;
+        }
+        
+        angle += 0.01;
+        
+        if (animationRunning) {
+            requestAnimationFrame(draw2DAtom);
+        }
+    }
+    
+    // 绘制2D s轨道
+    function draw2DSOrbital(ctx, x, y, scale) {
+        // 轨道圆
+        ctx.beginPath();
+        ctx.arc(x, y, 80 * scale, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(64, 169, 255, 0.7)';
+        ctx.lineWidth = 2 * scale;
+        ctx.stroke();
+        
+        // 电子
+        for (let i = 0; i < 2; i++) {
+            const electronAngle = angle + i * Math.PI;
+            const px = x + Math.cos(electronAngle) * 80 * scale;
+            const py = y + Math.sin(electronAngle) * 80 * scale;
+            
+            ctx.beginPath();
+            ctx.arc(px, py, 6 * scale, 0, Math.PI * 2);
+            ctx.fillStyle = '#ffff00';
+            ctx.fill();
+        }
+    }
+    
+    // 绘制2D p轨道
+    function draw2DPOrbital(ctx, x, y, scale) {
+        // 三个p轨道
+        const orbitals = [
+            { rotation: 0, color: 'rgba(255, 107, 107, 0.7)' },
+            { rotation: Math.PI / 2, color: 'rgba(78, 205, 196, 0.7)' },
+            { rotation: Math.PI / 4, color: 'rgba(255, 209, 102, 0.7)' }
+        ];
+        
+        orbitals.forEach((orbital, index) => {
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(orbital.rotation + angle * 0.3);
+            
+            // 哑铃形状
+            ctx.beginPath();
+            ctx.ellipse(0, 0, 100 * scale, 30 * scale, 0, 0, Math.PI * 2);
+            ctx.strokeStyle = orbital.color;
+            ctx.lineWidth = 2 * scale;
+            ctx.stroke();
+            
+            // 电子
+            for (let i = 0; i < 2; i++) {
+                const electronAngle = angle * 0.5 + i * Math.PI;
+                const px = Math.cos(electronAngle) * 100 * scale;
+                const py = Math.sin(electronAngle) * 30 * scale;
+                
+                ctx.beginPath();
+                ctx.arc(px, py, 5 * scale, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffff00';
+                ctx.fill();
+            }
+            
+            ctx.restore();
+        });
+    }
+    
+    // 绘制2D d轨道
+    function draw2DDOrbital(ctx, x, y, scale) {
+        // 五个d轨道
+        for (let i = 0; i < 5; i++) {
+            const orbitAngle = (i / 5) * Math.PI * 2;
+            const color = i % 2 === 0 ? 'rgba(64, 255, 128, 0.7)' : 'rgba(157, 78, 221, 0.7)';
+            
+            ctx.save();
+            ctx.translate(x, y);
+            ctx.rotate(orbitAngle + angle * 0.2);
+            
+            // 花瓣形状
+            ctx.beginPath();
+            for (let a = 0; a < Math.PI * 2; a += 0.1) {
+                const r = 80 * scale * (1 + 0.3 * Math.cos(4 * a));
+                const px = Math.cos(a) * r;
+                const py = Math.sin(a) * r;
+                
+                if (a === 0) {
+                    ctx.moveTo(px, py);
+                } else {
+                    ctx.lineTo(px, py);
                 }
             }
-        }, 10000);
-    } else {
-        console.log("Three.js已加载，版本:", THREE.REVISION);
-        setTimeout(init, 100);
+            ctx.closePath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2 * scale;
+            ctx.stroke();
+            
+            // 电子
+            for (let j = 0; j < 2; j++) {
+                const electronAngle = angle * 0.4 + j * Math.PI;
+                const r = 80 * scale * (1 + 0.3 * Math.cos(4 * electronAngle));
+                const px = Math.cos(electronAngle) * r;
+                const py = Math.sin(electronAngle) * r;
+                
+                ctx.beginPath();
+                ctx.arc(px, py, 4 * scale, 0, Math.PI * 2);
+                ctx.fillStyle = '#ffff00';
+                ctx.fill();
+            }
+            
+            ctx.restore();
+        }
     }
+    
+    // 绘制所有轨道
+    function draw2DAllOrbitals(ctx, x, y, scale) {
+        draw2DSOrbital(ctx, x, y, scale * 0.7);
+        draw2DPOrbital(ctx, x, y, scale * 0.8);
+        draw2DDOrbital(ctx, x, y, scale);
+    }
+    
+    // 更新轨道类型
+    window.updateOrbital2D = function(type) {
+        currentOrbital = type;
+    };
+    
+    // 切换动画
+    window.toggleAnimation2D = function() {
+        animationRunning = !animationRunning;
+        const btn = document.getElementById('toggle-animation');
+        const icon = btn.querySelector('i');
+        const text = btn.querySelector('span');
+        
+        if (animationRunning) {
+            icon.className = 'fas fa-pause';
+            text.textContent = '暂停动画';
+            draw2DAtom();
+        } else {
+            icon.className = 'fas fa-play';
+            text.textContent = '播放动画';
+        }
+    };
+    
+    // 更新轨道按钮事件
+    document.querySelectorAll('.orbital-btn').forEach(btn => {
+        const originalClick = btn.onclick;
+        btn.onclick = function() {
+            if (originalClick) originalClick.call(this);
+            window.updateOrbital2D(this.dataset.orbital);
+        };
+    });
+    
+    // 更新播放/暂停按钮事件
+    const toggleBtn = document.getElementById('toggle-animation');
+    if (toggleBtn) {
+        const originalClick = toggleBtn.onclick;
+        toggleBtn.onclick = function() {
+            if (originalClick) originalClick.call(this);
+            window.toggleAnimation2D();
+        };
+    }
+    
+    // 开始绘制
+    draw2DAtom();
+}
+
+// 页面加载完成后初始化
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM加载完成，开始初始化...");
+    
+    // 等待一小段时间确保所有资源加载
+    setTimeout(() => {
+        if (typeof THREE !== 'undefined') {
+            init();
+        } else {
+            console.error("Three.js未加载，使用2D备用方案");
+            init2DFallback();
+        }
+    }, 500);
 });
 
 // 清理函数
