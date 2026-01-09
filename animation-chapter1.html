@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>第1章：原子结构与量子力学基础 | 结构化学动画</title>
+    <title>第1章：原子结构 | 结构化学动画</title>
     
     <!-- 引入样式和字体 -->
     <link rel="stylesheet" href="css/style.css">
@@ -11,9 +11,10 @@
     
     <!-- 引入Three.js库 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 引入OrbitControls -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
     
     <style>
-        /* 页面特定样式 */
         .chapter-container {
             max-width: 1200px;
             margin: 0 auto;
@@ -54,14 +55,15 @@
         .animation-canvas {
             width: 100%;
             height: 500px;
-            background: #1a1a2e;
+            background: #0a0a1a;
             border-radius: 10px;
             overflow: hidden;
             margin-bottom: 30px;
             border: 1px solid #34495e;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
         }
         
-        #moleculeCanvas {
+        #atomCanvas {
             width: 100%;
             height: 100%;
             display: block;
@@ -95,12 +97,18 @@
             cursor: pointer;
             font-weight: 500;
             margin-right: 10px;
+            margin-bottom: 10px;
             transition: all 0.3s ease;
         }
         
         .btn-control:hover {
             background: #2980b9;
             transform: translateY(-2px);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.1);
+        }
+        
+        .btn-control:active {
+            transform: translateY(0);
         }
         
         .chapter-content {
@@ -135,6 +143,158 @@
             color: #3498db;
             margin-right: 10px;
         }
+        
+        .orbital-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin: 20px 0;
+        }
+        
+        .orbital-btn {
+            padding: 10px 20px;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+        }
+        
+        .orbital-btn.active,
+        .orbital-btn:hover {
+            background: #3498db;
+            transform: translateY(-2px);
+        }
+        
+        .quantum-grid, .rules-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .quantum-item, .rule-item {
+            background: linear-gradient(135deg, #1a1a2e, #16213e);
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #3498db;
+            color: white;
+        }
+        
+        .quantum-label, .rule-title {
+            font-weight: bold;
+            color: #3498db;
+            font-size: 1.2rem;
+            margin-bottom: 5px;
+        }
+        
+        .quantum-value {
+            font-size: 1.5rem;
+            color: white;
+            margin: 10px 0;
+            font-weight: bold;
+        }
+        
+        .quantum-desc, .rule-desc {
+            color: #bdc3c7;
+            font-size: 0.9rem;
+        }
+        
+        .atom-legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        
+        .atom-color {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .color-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .nucleus-color {
+            background-color: #ff9900;
+        }
+        
+        .s-orbital-color {
+            background-color: #ff0000;
+        }
+        
+        .p-orbital-color {
+            background-color: #00ff00;
+        }
+        
+        .d-orbital-color {
+            background-color: #0000ff;
+        }
+        
+        .f-orbital-color {
+            background-color: #ff00ff;
+        }
+        
+        .electron-cloud-color {
+            background: linear-gradient(90deg, #3498db, #2ecc71);
+        }
+        
+        .range-control {
+            width: 100%;
+            margin: 10px 0;
+        }
+        
+        .info-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+            border-left: 4px solid #3498db;
+        }
+        
+        .operation-guide {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .operation-item {
+            background: #f1f8ff;
+            padding: 15px;
+            border-radius: 5px;
+            text-align: center;
+        }
+        
+        @media (max-width: 768px) {
+            .chapter-title {
+                font-size: 1.5rem;
+            }
+            
+            .animation-canvas {
+                height: 400px;
+            }
+            
+            .orbital-selector {
+                justify-content: center;
+            }
+            
+            .btn-control {
+                width: 100%;
+                margin-right: 0;
+            }
+        }
     </style>
 </head>
 <body>
@@ -145,13 +305,65 @@
                 <i class="fas fa-arrow-left"></i> 返回主页
             </a>
             <h1 class="chapter-title">
-                <i class="fas fa-atom"></i> 第1章：原子结构与量子力学基础
+                <i class="fas fa-atom"></i> 第1章：原子结构
             </h1>
+        </div>
+        
+        <!-- 颜色图例 -->
+        <div class="atom-legend">
+            <div class="atom-color">
+                <div class="color-box nucleus-color"></div>
+                <span>原子核</span>
+            </div>
+            <div class="atom-color">
+                <div class="color-box s-orbital-color"></div>
+                <span>S轨道</span>
+            </div>
+            <div class="atom-color">
+                <div class="color-box p-orbital-color"></div>
+                <span>P轨道</span>
+            </div>
+            <div class="atom-color">
+                <div class="color-box d-orbital-color"></div>
+                <span>D轨道</span>
+            </div>
+            <div class="atom-color">
+                <div class="color-box f-orbital-color"></div>
+                <span>F轨道</span>
+            </div>
+            <div class="atom-color">
+                <div class="color-box electron-cloud-color"></div>
+                <span>电子云</span>
+            </div>
         </div>
         
         <!-- 3D动画画布 -->
         <div class="animation-canvas">
-            <canvas id="moleculeCanvas"></canvas>
+            <canvas id="atomCanvas"></canvas>
+        </div>
+        
+        <!-- 轨道选择器 -->
+        <div class="controls-panel">
+            <h3><i class="fas fa-exchange-alt"></i> 选择原子轨道类型</h3>
+            <p>点击下方按钮查看不同轨道的三维空间形状：</p>
+            <div class="orbital-selector">
+                <button class="orbital-btn active" data-orbital="s">
+                    <i class="fas fa-circle"></i> S轨道 (球形对称)
+                </button>
+                <button class="orbital-btn" data-orbital="p">
+                    <i class="fas fa-dumbbell"></i> P轨道 (哑铃形)
+                </button>
+                <button class="orbital-btn" data-orbital="d">
+                    <i class="fas fa-clover"></i> D轨道 (四叶草形)
+                </button>
+                <button class="orbital-btn" data-orbital="f">
+                    <i class="fas fa-star"></i> F轨道 (复杂形状)
+                </button>
+            </div>
+            <div class="info-box">
+                <i class="fas fa-info-circle"></i> 
+                <strong>原子轨道</strong>：描述电子在原子核周围运动的空间区域，不同轨道具有不同的形状和空间取向。
+            </div>
         </div>
         
         <!-- 控制面板 -->
@@ -159,8 +371,8 @@
             <h3><i class="fas fa-sliders-h"></i> 动画控制</h3>
             
             <div class="control-group">
-                <label>旋转速度控制</label>
-                <input type="range" id="rotationSpeed" min="0" max="200" value="100">
+                <label><i class="fas fa-tachometer-alt"></i> 旋转速度控制</label>
+                <input type="range" id="rotationSpeed" class="range-control" min="0" max="200" value="100">
                 <span id="speedValue">正常速度</span>
             </div>
             
@@ -171,10 +383,27 @@
                 <button id="resetView" class="btn-control">
                     <i class="fas fa-redo"></i> 重置视图
                 </button>
-                <button id="changeModel" class="btn-control">
-                    <i class="fas fa-exchange-alt"></i> 切换模型
+                <button id="toggleLabels" class="btn-control">
+                    <i class="fas fa-tag"></i> 显示/隐藏标签
+                </button>
+                <button id="toggleClouds" class="btn-control">
+                    <i class="fas fa-cloud"></i> 显示/隐藏电子云
                 </button>
             </div>
+        </div>
+        
+        <!-- 量子数显示 -->
+        <div id="quantumNumbers" class="controls-panel">
+            <h3><i class="fas fa-hashtag"></i> 量子数</h3>
+            <p>量子数用于描述原子中电子的运动状态：</p>
+            <!-- 这里会通过JS动态生成 -->
+        </div>
+        
+        <!-- 电子排布规律 -->
+        <div id="electronRules" class="controls-panel">
+            <h3><i class="fas fa-list-ol"></i> 电子排布规律</h3>
+            <p>电子在原子轨道中的排布遵循以下三个基本规则：</p>
+            <!-- 这里会通过JS动态生成 -->
         </div>
         
         <!-- 章节内容说明 -->
@@ -196,22 +425,63 @@
                     <strong>量子数</strong>：主量子数、角量子数、磁量子数、自旋量子数
                 </li>
                 <li>
-                    <i class="fas fa-layer-group concept-icon"></i>
+                    <i class="fas fa-list-ol concept-icon"></i>
                     <strong>电子排布规律</strong>：能量最低原理、泡利不相容原理、洪特规则
                 </li>
             </ul>
             
-            <h3 class="section-title">操作指南</h3>
+            <h3 class="section-title">当前轨道：S轨道</h3>
             <ul class="concept-list">
-                <li><i class="fas fa-mouse-pointer concept-icon"></i> 鼠标拖拽：旋转模型</li>
-                <li><i class="fas fa-mouse concept-icon"></i> 鼠标滚轮：缩放视图</li>
-                <li><i class="fas fa-expand-alt concept-icon"></i> 右键拖拽：平移视图</li>
-                <li><i class="fas fa-play-circle concept-icon"></i> 使用控制面板调整动画参数</li>
+                <li><strong>轨道形状</strong>：球形对称</li>
+                <li><strong>角量子数 (l)</strong>：0</li>
+                <li><strong>磁量子数 (m)</strong>：0</li>
+                <li><strong>轨道数量</strong>：1个</li>
+                <li><strong>电子容量</strong>：最多容纳2个电子</li>
+                <li><strong>能级</strong>：1s, 2s, 3s, ...</li>
+                <li><strong>电子云特征</strong>：离核越近，电子出现概率越大</li>
+            </ul>
+            
+            <div class="info-box">
+                <i class="fas fa-lightbulb"></i>
+                <strong>电子云概念</strong>：电子云是用统计方法描述的电子在原子核外空间出现的概率分布。图中点云密度越高表示电子在该区域出现的概率越大。
+            </div>
+            
+            <h3 class="section-title">操作指南</h3>
+            <div class="operation-guide">
+                <div class="operation-item">
+                    <i class="fas fa-mouse-pointer fa-2x concept-icon"></i>
+                    <h4>鼠标拖拽</h4>
+                    <p>旋转原子模型</p>
+                </div>
+                <div class="operation-item">
+                    <i class="fas fa-mouse fa-2x concept-icon"></i>
+                    <h4>鼠标滚轮</h4>
+                    <p>缩放视图</p>
+                </div>
+                <div class="operation-item">
+                    <i class="fas fa-expand-alt fa-2x concept-icon"></i>
+                    <h4>右键拖拽</h4>
+                    <p>平移视图</p>
+                </div>
+                <div class="operation-item">
+                    <i class="fas fa-exchange-alt fa-2x concept-icon"></i>
+                    <h4>轨道切换</h4>
+                    <p>点击上方按钮查看不同轨道</p>
+                </div>
+            </div>
+            
+            <h3 class="section-title">学习目标</h3>
+            <ul class="concept-list">
+                <li>理解不同原子轨道的空间形状和特征</li>
+                <li>掌握量子数的物理意义和取值规则</li>
+                <li>了解电子云的概率密度概念</li>
+                <li>掌握电子排布的三个基本原理</li>
+                <li>能够通过三维模型直观理解原子结构</li>
             </ul>
         </div>
     </div>
     
-    <!-- 引入第1章特定的动画脚本 -->
+    <!-- 引入第1章原子结构动画脚本 -->
     <script src="js/chapter1-animation.js"></script>
 </body>
 </html>
