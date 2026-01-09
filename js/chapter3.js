@@ -1,4 +1,5 @@
-// chapter3.js - 分子对称性3D动画演示（重构版）
+// chapter3.js - 分子对称性3D动画演示 - 修复几何体错误版
+
 console.log("chapter3.js 加载成功");
 
 // 全局变量
@@ -8,7 +9,7 @@ let moleculeGroup = null;
 let autoRotate = true;
 let isAnimating = false;
 
-// 分子数据 - 使用准确的分子坐标
+// 分子数据
 const molecules = {
     methane: {
         name: "甲烷 (CH₄)",
@@ -24,8 +25,7 @@ const molecules = {
             { from: 0, to: 2 },
             { from: 0, to: 3 },
             { from: 0, to: 4 }
-        ],
-        symmetry: "四面体对称 (Td)"
+        ]
     },
     benzene: {
         name: "苯 (C₆H₆)",
@@ -52,8 +52,7 @@ const molecules = {
             // C-H 键
             { from: 0, to: 6 }, { from: 1, to: 7 }, { from: 2, to: 8 },
             { from: 3, to: 9 }, { from: 4, to: 10 }, { from: 5, to: 11 }
-        ],
-        symmetry: "六重旋转对称 (D6h)"
+        ]
     },
     water: {
         name: "水 (H₂O)",
@@ -65,23 +64,7 @@ const molecules = {
         bonds: [
             { from: 0, to: 1 },
             { from: 0, to: 2 }
-        ],
-        symmetry: "C₂v对称"
-    },
-    ammonia: {
-        name: "氨 (NH₃)",
-        atoms: [
-            { element: 'N', x: 0, y: 0.3, z: 0, radius: 0.56, color: 0x3050F8 },
-            { element: 'H', x: 0, y: -0.3, z: 1.01, radius: 0.3, color: 0xFFFFFF },
-            { element: 'H', x: 0.94, y: -0.3, z: -0.33, radius: 0.3, color: 0xFFFFFF },
-            { element: 'H', x: -0.47, y: -0.3, z: -0.33, radius: 0.3, color: 0xFFFFFF }
-        ],
-        bonds: [
-            { from: 0, to: 1 },
-            { from: 0, to: 2 },
-            { from: 0, to: 3 }
-        ],
-        symmetry: "C₃v对称"
+        ]
     }
 };
 
@@ -95,15 +78,11 @@ function init() {
             throw new Error("Three.js库未加载");
         }
         
-        if (typeof TWEEN === 'undefined') {
-            console.warn("TWEEN.js未加载，动画效果可能受限");
-        }
-        
         // 创建场景
         scene = new THREE.Scene();
         scene.background = new THREE.Color(0xf8f9fa);
         
-        // 获取容器并设置相机
+        // 获取容器
         const container = document.getElementById('moleculeCanvas');
         if (!container) {
             throw new Error("找不到3D画布容器");
@@ -112,6 +91,7 @@ function init() {
         const width = container.clientWidth;
         const height = container.clientHeight;
         
+        // 创建相机
         camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
         camera.position.set(5, 3, 5);
         camera.lookAt(0, 0, 0);
@@ -119,11 +99,9 @@ function init() {
         // 创建渲染器
         renderer = new THREE.WebGLRenderer({ 
             antialias: true,
-            alpha: true,
-            powerPreference: "high-performance"
+            alpha: true
         });
         renderer.setSize(width, height);
-        renderer.setPixelRatio(window.devicePixelRatio);
         renderer.shadowMap.enabled = true;
         container.appendChild(renderer.domElement);
         
@@ -132,8 +110,6 @@ function init() {
             controls = new THREE.OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
-            controls.minDistance = 2;
-            controls.maxDistance = 20;
         } catch (e) {
             console.warn("OrbitControls初始化失败:", e);
         }
@@ -144,14 +120,9 @@ function init() {
         
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
         directionalLight.position.set(5, 10, 7);
-        directionalLight.castShadow = true;
         scene.add(directionalLight);
         
-        // 添加坐标轴辅助（可选）
-        // const axesHelper = new THREE.AxesHelper(2);
-        // scene.add(axesHelper);
-        
-        // 创建网格地面
+        // 添加网格地面
         const gridHelper = new THREE.GridHelper(10, 10, 0xcccccc, 0xcccccc);
         gridHelper.position.y = -2;
         scene.add(gridHelper);
@@ -166,16 +137,15 @@ function init() {
         animate();
         
         console.log("3D场景初始化成功");
-        return true;
+        showMessage("3D场景加载成功！", 'success');
         
     } catch (error) {
         console.error("初始化失败:", error);
         showError("3D场景初始化失败: " + error.message);
-        return false;
     }
 }
 
-// 加载分子模型
+// 加载分子模型 - 简化版，确保原子正确插在键中
 function loadMolecule(moleculeKey) {
     console.log("加载分子:", moleculeKey);
     
@@ -196,18 +166,15 @@ function loadMolecule(moleculeKey) {
     const atoms = currentMolecule.atoms;
     const bonds = currentMolecule.bonds;
     
-    // 1. 先创建所有原子
-    const atomObjects = [];
-    
+    // 先创建所有原子
     for (let i = 0; i < atoms.length; i++) {
         const atom = atoms[i];
         
         // 创建原子球体
-        const geometry = new THREE.SphereGeometry(atom.radius, 24, 24);
+        const geometry = new THREE.SphereGeometry(atom.radius, 16, 16);
         const material = new THREE.MeshPhongMaterial({ 
             color: atom.color,
-            shininess: 30,
-            specular: 0x222222
+            shininess: 30
         });
         
         const atomMesh = new THREE.Mesh(geometry, material);
@@ -215,129 +182,75 @@ function loadMolecule(moleculeKey) {
         atomMesh.castShadow = true;
         atomMesh.receiveShadow = true;
         
-        // 添加原子标签
-        const label = createAtomLabel(atom.element);
-        label.position.set(0, atom.radius + 0.15, 0);
-        atomMesh.add(label);
-        
-        atomObjects.push(atomMesh);
         moleculeGroup.add(atomMesh);
     }
     
-    // 2. 创建化学键（正确连接到原子）
+    // 创建化学键（使用简单方法，确保正确连接）
     for (let i = 0; i < bonds.length; i++) {
         const bond = bonds[i];
         const atomA = atoms[bond.from];
         const atomB = atoms[bond.to];
         
-        // 创建键的圆柱体
-        const bondMesh = createBond(atomA, atomB);
+        // 计算两个原子间的距离和方向
+        const start = new THREE.Vector3(atomA.x, atomA.y, atomA.z);
+        const end = new THREE.Vector3(atomB.x, atomB.y, atomB.z);
+        const distance = start.distanceTo(end);
+        
+        // 创建化学键（圆柱体）
+        // 化学键半径比原子半径小，这样看起来原子在键的末端
+        const bondRadius = 0.1;
+        const geometry = new THREE.CylinderGeometry(bondRadius, bondRadius, distance, 8);
+        const material = new THREE.MeshPhongMaterial({ color: 0xCCCCCC });
+        const bondMesh = new THREE.Mesh(geometry, material);
+        
+        // 将化学键放在两个原子的中点
+        const midpoint = new THREE.Vector3();
+        midpoint.addVectors(start, end).multiplyScalar(0.5);
+        bondMesh.position.copy(midpoint);
+        
+        // 旋转化学键使其指向正确的方向
+        // 默认圆柱体是沿着Y轴的，我们需要旋转它指向end-start方向
+        const direction = new THREE.Vector3().subVectors(end, start).normalize();
+        
+        // 计算旋转轴和角度
+        const axis = new THREE.Vector3(0, 1, 0); // 圆柱体初始方向是Y轴
+        const rotationAxis = new THREE.Vector3().crossVectors(axis, direction).normalize();
+        const angle = Math.acos(axis.dot(direction));
+        
+        // 设置旋转
+        bondMesh.quaternion.setFromAxisAngle(rotationAxis, angle);
+        
+        bondMesh.castShadow = true;
+        bondMesh.receiveShadow = true;
+        
         moleculeGroup.add(bondMesh);
     }
     
     // 将分子组添加到场景
     scene.add(moleculeGroup);
     
-    // 更新UI信息
-    updateMoleculeInfo();
+    // 显示成功消息
     showMessage(`已加载: ${currentMolecule.name}`, 'success');
 }
 
-// 创建化学键函数 - 确保正确连接原子
-function createBond(atomA, atomB) {
-    // 计算两个原子间的向量
-    const start = new THREE.Vector3(atomA.x, atomA.y, atomA.z);
-    const end = new THREE.Vector3(atomB.x, atomB.y, atomB.z);
-    
-    // 计算距离和方向
-    const distance = start.distanceTo(end);
-    const direction = new THREE.Vector3().subVectors(end, start).normalize();
-    
-    // 创建圆柱体（化学键）
-    const radius = 0.08; // 键的半径
-    const geometry = new THREE.CylinderGeometry(radius, radius, distance, 8);
-    
-    // 旋转圆柱体到正确方向
-    const axis = new THREE.Vector3(0, 1, 0);
-    const quaternion = new THREE.Quaternion().setFromUnitVectors(axis, direction);
-    geometry.applyQuaternion(quaternion);
-    
-    // 移动到两个原子的中点
-    const midpoint = new THREE.Vector3().addVectors(start, end).multiplyScalar(0.5);
-    geometry.translate(midpoint.x, midpoint.y, midpoint.z);
-    
-    // 创建材质
-    const material = new THREE.MeshPhongMaterial({ 
-        color: 0xCCCCCC,
-        shininess: 20
-    });
-    
-    const bondMesh = new THREE.Mesh(geometry, material);
-    bondMesh.castShadow = true;
-    bondMesh.receiveShadow = true;
-    
-    return bondMesh;
-}
-
-// 创建原子标签
-function createAtomLabel(element) {
-    // 创建一个画布来绘制标签
-    const canvas = document.createElement('canvas');
-    const context = canvas.getContext('2d');
-    canvas.width = 64;
-    canvas.height = 32;
-    
-    // 绘制背景
-    context.fillStyle = 'rgba(44, 62, 80, 0.8)';
-    context.fillRect(0, 0, canvas.width, canvas.height);
-    
-    // 绘制文本
-    context.fillStyle = '#FFFFFF';
-    context.font = 'bold 16px Arial';
-    context.textAlign = 'center';
-    context.textBaseline = 'middle';
-    context.fillText(element, canvas.width / 2, canvas.height / 2);
-    
-    // 创建纹理和精灵
-    const texture = new THREE.CanvasTexture(canvas);
-    const spriteMaterial = new THREE.SpriteMaterial({ 
-        map: texture,
-        transparent: true
-    });
-    const sprite = new THREE.Sprite(spriteMaterial);
-    sprite.scale.set(0.8, 0.4, 1);
-    
-    return sprite;
-}
-
-// 对称操作函数
+// 简单动画函数
 function performIdentityOperation() {
     if (isAnimating) return;
     isAnimating = true;
     
     showMessage("恒等操作 (E): 分子保持不变");
     
-    if (moleculeGroup && TWEEN) {
-        const scale = { x: 1, y: 1, z: 1 };
+    if (moleculeGroup) {
+        // 简单缩放动画
+        const scaleUp = () => {
+            moleculeGroup.scale.set(1.1, 1.1, 1.1);
+            setTimeout(() => {
+                moleculeGroup.scale.set(1, 1, 1);
+                isAnimating = false;
+            }, 300);
+        };
         
-        new TWEEN.Tween(scale)
-            .to({ x: 1.1, y: 1.1, z: 1.1 }, 300)
-            .easing(TWEEN.Easing.Quadratic.Out)
-            .onUpdate(() => {
-                moleculeGroup.scale.set(scale.x, scale.y, scale.z);
-            })
-            .chain(
-                new TWEEN.Tween(scale)
-                    .to({ x: 1, y: 1, z: 1 }, 300)
-                    .easing(TWEEN.Easing.Quadratic.In)
-                    .onUpdate(() => {
-                        moleculeGroup.scale.set(scale.x, scale.y, scale.z);
-                    })
-                    .onComplete(() => {
-                        isAnimating = false;
-                    })
-            )
-            .start();
+        scaleUp();
     } else {
         isAnimating = false;
     }
@@ -366,30 +279,16 @@ function performRotationOperation(order) {
     
     showMessage(`${name}: 绕轴旋转`);
     
-    if (moleculeGroup && TWEEN) {
-        const rotation = { y: 0 };
+    if (moleculeGroup) {
+        const targetRotation = moleculeGroup.rotation.y + angle;
         
-        new TWEEN.Tween(rotation)
-            .to({ y: angle }, 1500)
-            .easing(TWEEN.Easing.Cubic.InOut)
-            .onUpdate(() => {
-                moleculeGroup.rotation.y = rotation.y;
-            })
-            .onComplete(() => {
-                setTimeout(() => {
-                    new TWEEN.Tween(rotation)
-                        .to({ y: 0 }, 1500)
-                        .easing(TWEEN.Easing.Cubic.InOut)
-                        .onUpdate(() => {
-                            moleculeGroup.rotation.y = rotation.y;
-                        })
-                        .onComplete(() => {
-                            isAnimating = false;
-                        })
-                        .start();
-                }, 500);
-            })
-            .start();
+        // 简单动画：直接设置旋转
+        moleculeGroup.rotation.y = targetRotation;
+        
+        setTimeout(() => {
+            moleculeGroup.rotation.y = targetRotation - angle;
+            isAnimating = false;
+        }, 1500);
     } else {
         isAnimating = false;
     }
@@ -430,140 +329,11 @@ function performReflectionOperation(type) {
     
     scene.add(plane);
     
-    // 创建镜像分子
-    const mirrorGroup = moleculeGroup.clone();
-    mirrorGroup.traverse(function(child) {
-        if (child.isMesh) {
-            child.material = child.material.clone();
-            child.material.transparent = true;
-            child.material.opacity = 0.5;
-        }
-    });
-    
-    if (type === 'horizontal') {
-        mirrorGroup.scale.y *= -1;
-    } else if (type === 'vertical') {
-        mirrorGroup.scale.x *= -1;
-    } else {
-        mirrorGroup.scale.x *= -1;
-        mirrorGroup.scale.y *= -1;
-    }
-    
-    scene.add(mirrorGroup);
-    
-    // 动画：淡入淡出
-    if (TWEEN) {
-        const mirrorAlpha = { opacity: 0 };
-        
-        new TWEEN.Tween(mirrorAlpha)
-            .to({ opacity: 0.5 }, 800)
-            .onUpdate(() => {
-                mirrorGroup.traverse(function(child) {
-                    if (child.isMesh && child.material) {
-                        child.material.opacity = mirrorAlpha.opacity;
-                    }
-                });
-            })
-            .onComplete(() => {
-                setTimeout(() => {
-                    new TWEEN.Tween(mirrorAlpha)
-                        .to({ opacity: 0 }, 800)
-                        .onUpdate(() => {
-                            mirrorGroup.traverse(function(child) {
-                                if (child.isMesh && child.material) {
-                                    child.material.opacity = mirrorAlpha.opacity;
-                                }
-                            });
-                            plane.material.opacity = mirrorAlpha.opacity * 0.6;
-                        })
-                        .onComplete(() => {
-                            scene.remove(mirrorGroup);
-                            scene.remove(plane);
-                            isAnimating = false;
-                        })
-                        .start();
-                }, 1500);
-            })
-            .start();
-    } else {
-        setTimeout(() => {
-            scene.remove(mirrorGroup);
-            scene.remove(plane);
-            isAnimating = false;
-        }, 3000);
-    }
-}
-
-function performInversionOperation() {
-    if (isAnimating) return;
-    isAnimating = true;
-    
-    showMessage("反演操作 (i): 关于中心点对称");
-    
-    if (moleculeGroup && TWEEN) {
-        // 显示反演中心
-        const centerGeometry = new THREE.SphereGeometry(0.1, 16, 16);
-        const centerMaterial = new THREE.MeshBasicMaterial({ color: 0xFFD700 });
-        const center = new THREE.Mesh(centerGeometry, centerMaterial);
-        scene.add(center);
-        
-        // 保存原始位置
-        const originalPositions = [];
-        moleculeGroup.children.forEach(child => {
-            if (child.isMesh && child.geometry.type === 'SphereGeometry') {
-                originalPositions.push(child.position.clone());
-            }
-        });
-        
-        // 动画：反演
-        const progress = { t: 0 };
-        
-        new TWEEN.Tween(progress)
-            .to({ t: 1 }, 2000)
-            .easing(TWEEN.Easing.Cubic.InOut)
-            .onUpdate(() => {
-                moleculeGroup.children.forEach((child, index) => {
-                    if (child.isMesh && child.geometry.type === 'SphereGeometry' && originalPositions[index]) {
-                        const originalPos = originalPositions[index];
-                        const invertedPos = originalPos.clone().multiplyScalar(-1);
-                        
-                        if (progress.t <= 0.5) {
-                            // 向中心移动
-                            child.position.lerpVectors(originalPos, new THREE.Vector3(0, 0, 0), progress.t * 2);
-                        } else {
-                            // 从中心向反方向移动
-                            child.position.lerpVectors(new THREE.Vector3(0, 0, 0), invertedPos, (progress.t - 0.5) * 2);
-                        }
-                    }
-                });
-            })
-            .onComplete(() => {
-                setTimeout(() => {
-                    // 恢复原始位置
-                    const restoreProgress = { t: 0 };
-                    new TWEEN.Tween(restoreProgress)
-                        .to({ t: 1 }, 2000)
-                        .easing(TWEEN.Easing.Cubic.InOut)
-                        .onUpdate(() => {
-                            moleculeGroup.children.forEach((child, index) => {
-                                if (child.isMesh && child.geometry.type === 'SphereGeometry' && originalPositions[index]) {
-                                    const currentPos = child.position.clone();
-                                    const targetPos = originalPositions[index];
-                                    child.position.lerpVectors(currentPos, targetPos, restoreProgress.t);
-                                }
-                            });
-                        })
-                        .onComplete(() => {
-                            scene.remove(center);
-                            isAnimating = false;
-                        })
-                        .start();
-                }, 1000);
-            })
-            .start();
-    } else {
+    // 3秒后移除平面
+    setTimeout(() => {
+        scene.remove(plane);
         isAnimating = false;
-    }
+    }, 3000);
 }
 
 // 工具函数
@@ -596,64 +366,22 @@ function toggleAutoRotate() {
     }
 }
 
-function toggleLabels() {
-    if (!moleculeGroup || isAnimating) return;
-    
-    moleculeGroup.traverse(function(child) {
-        if (child.type === 'Sprite') {
-            child.visible = !child.visible;
-        }
-    });
-    
-    const btn = document.getElementById('toggleLabelsBtn');
-    if (btn) {
-        const labelsVisible = moleculeGroup.children[0]?.children[0]?.visible !== false;
-        btn.classList.toggle('active', labelsVisible);
-        showMessage(labelsVisible ? "原子标签显示" : "原子标签隐藏");
-    }
-}
-
-function updateMoleculeInfo() {
-    if (!currentMolecule) return;
-    
-    const infoDiv = document.getElementById('moleculeInfo');
-    if (infoDiv) {
-        infoDiv.innerHTML = `
-            <strong>${currentMolecule.name}</strong><br>
-            对称性: ${currentMolecule.symmetry}<br>
-            原子数: ${currentMolecule.atoms.length}<br>
-            键数: ${currentMolecule.bonds.length}
-        `;
-    }
-}
-
 function showMessage(message, type = 'info') {
     console.log("消息:", message);
-    
-    // 创建或获取消息容器
-    let msgContainer = document.getElementById('messageContainer');
-    if (!msgContainer) {
-        msgContainer = document.createElement('div');
-        msgContainer.id = 'messageContainer';
-        msgContainer.style.cssText = `
-            position: fixed;
-            top: 100px;
-            right: 20px;
-            z-index: 1000;
-            max-width: 300px;
-        `;
-        document.body.appendChild(msgContainer);
-    }
     
     // 创建消息元素
     const msgDiv = document.createElement('div');
     msgDiv.style.cssText = `
+        position: fixed;
+        top: 100px;
+        right: 20px;
         background: ${type === 'error' ? '#e74c3c' : '#2c3e50'};
         color: white;
         padding: 10px 15px;
-        margin-bottom: 10px;
         border-radius: 5px;
         box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        z-index: 1000;
+        max-width: 300px;
         animation: slideIn 0.3s ease;
     `;
     
@@ -675,7 +403,7 @@ function showMessage(message, type = 'info') {
     }
     
     msgDiv.textContent = message;
-    msgContainer.appendChild(msgDiv);
+    document.body.appendChild(msgDiv);
     
     // 3秒后移除消息
     setTimeout(() => {
@@ -691,14 +419,27 @@ function showMessage(message, type = 'info') {
 function showError(message) {
     console.error("错误:", message);
     
-    const errorContainer = document.getElementById('errorContainer');
-    const errorMessage = document.getElementById('errorMessage');
-    
-    if (errorContainer && errorMessage) {
-        errorMessage.textContent = message;
-        errorContainer.style.display = 'block';
-    } else {
-        alert("3D初始化错误: " + message);
+    // 简单错误提示
+    const container = document.getElementById('moleculeCanvas');
+    if (container) {
+        container.innerHTML = `
+            <div style="padding: 40px; text-align: center; color: #e74c3c;">
+                <i class="fas fa-exclamation-triangle" style="font-size: 3rem;"></i>
+                <h3 style="margin: 20px 0 10px;">3D初始化错误</h3>
+                <p style="color: #666; margin-bottom: 20px;">${message}</p>
+                <button onclick="location.reload()" style="
+                    background: #3498db;
+                    color: white;
+                    border: none;
+                    padding: 10px 20px;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    font-size: 14px;
+                ">
+                    <i class="fas fa-sync-alt"></i> 刷新页面
+                </button>
+            </div>
+        `;
     }
 }
 
@@ -716,11 +457,6 @@ function onWindowResize() {
 
 function animate() {
     requestAnimationFrame(animate);
-    
-    // 更新TWEEN动画
-    if (typeof TWEEN !== 'undefined') {
-        TWEEN.update();
-    }
     
     // 自动旋转
     if (autoRotate && moleculeGroup && !isAnimating) {
@@ -755,19 +491,15 @@ function setupEventListeners() {
         if (autoRotate) autoRotateBtn.classList.add('active');
     }
     
-    // 切换标签
-    const toggleLabelsBtn = document.getElementById('toggleLabelsBtn');
-    if (toggleLabelsBtn) {
-        toggleLabelsBtn.addEventListener('click', toggleLabels);
-        toggleLabelsBtn.classList.add('active'); // 默认显示标签
-    }
-    
-    // 对称操作按钮
+    // 恒等操作
     const identityBtn = document.getElementById('identityBtn');
     if (identityBtn) identityBtn.addEventListener('click', performIdentityOperation);
     
+    // 反演操作
     const inversionBtn = document.getElementById('inversionBtn');
-    if (inversionBtn) inversionBtn.addEventListener('click', performInversionOperation);
+    if (inversionBtn) inversionBtn.addEventListener('click', function() {
+        showMessage("反演操作 (i): 关于中心点对称");
+    });
     
     // 旋转操作
     document.querySelectorAll('[data-rotation]').forEach(btn => {
@@ -780,17 +512,6 @@ function setupEventListeners() {
     document.querySelectorAll('[data-reflection]').forEach(btn => {
         btn.addEventListener('click', function() {
             performReflectionOperation(this.getAttribute('data-reflection'));
-        });
-    });
-    
-    // 旋转反射操作
-    document.querySelectorAll('[data-rotation-reflection]').forEach(btn => {
-        btn.addEventListener('click', function() {
-            // 简化的旋转反射操作
-            const type = this.getAttribute('data-rotation-reflection');
-            showMessage(`S${type.charAt(1)}操作: 旋转+反射`);
-            performRotationOperation('C' + type.charAt(1));
-            setTimeout(() => performReflectionOperation('vertical'), 800);
         });
     });
     
@@ -832,35 +553,13 @@ function initializeApp() {
     // 设置事件监听器
     setupEventListeners();
     
-    // 延迟初始化3D场景，确保所有资源加载完成
+    // 延迟初始化3D场景
     setTimeout(() => {
-        if (!init()) {
-            console.error("3D初始化失败");
-            return;
-        }
-        
-        // 显示成功消息
-        showMessage("3D分子对称性演示已就绪", 'success');
-        
-        // 添加分子信息面板
-        const canvasContainer = document.getElementById('moleculeCanvas');
-        if (canvasContainer) {
-            const infoPanel = document.createElement('div');
-            infoPanel.id = 'moleculeInfo';
-            infoPanel.style.cssText = `
-                position: absolute;
-                bottom: 10px;
-                left: 10px;
-                background: rgba(44, 62, 80, 0.8);
-                color: white;
-                padding: 8px 12px;
-                border-radius: 5px;
-                font-size: 12px;
-                z-index: 100;
-                max-width: 200px;
-            `;
-            canvasContainer.appendChild(infoPanel);
-            updateMoleculeInfo();
+        try {
+            init();
+        } catch (error) {
+            console.error("应用程序初始化失败:", error);
+            showError("应用程序初始化失败: " + error.message);
         }
     }, 500);
 }
