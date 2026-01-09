@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>原子结构的三维动画 - 第二章</title>
+    <title>原子结构三维动画 - 第二章</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
         * {
@@ -691,10 +691,14 @@
             month: 'long',
             day: 'numeric'
         });
+        
+        // 检查Three.js是否加载成功
+        document.addEventListener('DOMContentLoaded', function() {
+            if (typeof THREE === 'undefined') {
+                document.getElementById('loading').innerHTML = 'Three.js库加载失败，请检查网络连接';
+                document.getElementById('loading').style.color = '#ff4040';
+            }
+        });
     </script>
 </body>
 </html>
-
-
-
-
